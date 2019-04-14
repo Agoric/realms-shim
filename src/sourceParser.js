@@ -14,6 +14,7 @@ export function rejectImportExpressions(s) {
     // 'import' token in the string, we're safe.
     // if (!parse(s).contains('import')) return;
     const linenum = matches[1].split('\n').length; // more or less
-    throw new SyntaxError(`possible import expression rejected around line ${linenum}`);
+    throw new SyntaxError(
+      `possible import expression rejected around line ${linenum}`);
   }
 }

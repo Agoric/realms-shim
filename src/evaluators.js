@@ -41,7 +41,8 @@ function createScopedEvaluatorFactory(unsafeRec, constants) {
   // 2: 'optimizer' catches common variable names for speed
   // 3: The inner strict function is effectively passed two parameters:
   //    a) its arguments[0] is the source to be directly evaluated.
-  //    b) its 'this' is the this binding seen by the code being directly evaluated.
+  //    b) its 'this' is the this binding seen by the code being
+  //       directly evaluated.
 
   // everything in the 'optimizer' string is looked up in the proxy
   // (including an 'arguments[0]', which points at the Proxy). 'function' is
@@ -72,7 +73,8 @@ export function createSafeEvaluatorFactory(unsafeRec, safeGlobal) {
 
   const scopeHandler = createScopeHandler(unsafeRec);
   const optimizableGlobals = getOptimizableGlobals(safeGlobal);
-  const scopedEvaluatorFactory = createScopedEvaluatorFactory(unsafeRec, optimizableGlobals);
+  const scopedEvaluatorFactory =
+        createScopedEvaluatorFactory(unsafeRec, optimizableGlobals);
 
   function factory(endowments = {}) {
     // todo (shim limitation): scan endowments, throw error if endowment
@@ -83,9 +85,12 @@ export function createSafeEvaluatorFactory(unsafeRec, safeGlobal) {
     // writeable-vs-nonwritable == let-vs-const, but there's no
     // global-lexical-scope equivalent of an accessor, outside what we can
     // explain/spec
-    const scopeTarget = create(safeGlobal, getOwnPropertyDescriptors(endowments));
+    const scopeTarget = create(safeGlobal,
+                               getOwnPropertyDescriptors(endowments));
     const scopeProxy = new Proxy(scopeTarget, scopeHandler);
-    const scopedEvaluator = apply(scopedEvaluatorFactory, safeGlobal, [scopeProxy]);
+    const scopedEvaluator = apply(scopedEvaluatorFactory,
+                                  safeGlobal,
+                                  [scopeProxy]);
 
     // We use the the concise method syntax to create an eval without a
     // [[Construct]] behavior (such that the invocation "new eval()" throws
@@ -101,7 +106,8 @@ export function createSafeEvaluatorFactory(unsafeRec, safeGlobal) {
           // Ensure that "this" resolves to the safe global.
           return apply(scopedEvaluator, safeGlobal, [src]);
         } catch (e) {
-          // stash the child-code error in hopes of debugging the internal failure
+          // stash the child-code error in hopes of debugging the
+          // internal failure
           err = e;
           throw e;
         } finally {
@@ -124,7 +130,8 @@ export function createSafeEvaluatorFactory(unsafeRec, safeGlobal) {
     setPrototypeOf(safeEval, unsafeFunction.prototype);
 
     assert(getPrototypeOf(safeEval).constructor !== Function, 'hide Function');
-    assert(getPrototypeOf(safeEval).constructor !== unsafeFunction, 'hide unsafeFunction');
+    assert(getPrototypeOf(safeEval).constructor !== unsafeFunction,
+           'hide unsafeFunction');
 
     // note: be careful to not leak our primal Function.prototype by setting
     // this to a plain arrow function. Now that we have safeEval, use it.
@@ -195,7 +202,8 @@ export function createFunctionEvaluator(unsafeRec, safeEval) {
       // character - it may make the combined function expression
       // compile. We avoid this problem by checking for this early on.
 
-      // note: v8 throws just like this does, but chrome accepts e.g. 'a = new Date()'
+      // note: v8 throws just like this does, but chrome accepts
+      // e.g. 'a = new Date()'
       throw new unsafeGlobal.SyntaxError(
         'shim limitation: Function arg string contains parenthesis'
       );
@@ -220,16 +228,19 @@ export function createFunctionEvaluator(unsafeRec, safeEval) {
   // with instance checks in any compartment of the same root realm.
   setPrototypeOf(safeFunction, unsafeFunction.prototype);
 
-  assert(getPrototypeOf(safeFunction).constructor !== Function, 'hide Function');
-  assert(getPrototypeOf(safeFunction).constructor !== unsafeFunction, 'hide unsafeFunction');
+  assert(getPrototypeOf(safeFunction).constructor !== Function,
+         'hide Function');
+  assert(getPrototypeOf(safeFunction).constructor !== unsafeFunction,
+         'hide unsafeFunction');
 
   defineProperties(safeFunction, {
     // Ensure that any function created in any compartment in a root realm is an
     // instance of Function in any compartment of the same root ralm.
     prototype: { value: unsafeFunction.prototype },
 
-    // Provide a custom output without overwriting the Function.prototype.toString
-    // which is called by some third-party libraries.
+    // Provide a custom output without overwriting the
+    // Function.prototype.toString which is called by some third-party
+    // libraries.
     toString: {
       value: safeEval("() => 'function Function() { [shim code] }'"),
       writable: false,
