@@ -1,19 +1,19 @@
 // https://www.ecma-international.org/ecma-262/9.0/index.html#sec-html-like-comments
 // explains that JavaScript parsers may or may not recognize html
-// comment tokens "<!--" and "-->" in non-module source text, and
-// treat them as a kind of line comment. Since otherwise both of these
-// can appear in normal JavaScript source code as a sequence of
-// operators, we have the terrifying possibility of the same source
-// code parsing one way on one correct JavaScript implementation, and
-// another way on another.
+// comment tokens "<" immediately followed by "!--" and "--"
+// immediately followed by ">" in non-module source text, and treat
+// them as a kind of line comment. Since otherwise both of these can
+// appear in normal JavaScript source code as a sequence of operators,
+// we have the terrifying possibility of the same source code parsing
+// one way on one correct JavaScript implementation, and another way
+// on another.
 //
 // This shim takes the conservative strategy of just rejecting source
-// text that contains these strings. Note that this very source file
-// would be rejected by this test. If this became an issue, we'd need
-// to rewrite it to preserve its behavior without mentioning these
+// text that contains these strings anywhere. Note that this very
+// source file is written strangely to avoid mentioning these
 // character strings explicitly.
 
-const htmlCommentPattern = /^(.*)(<!--|-->)/;
+const htmlCommentPattern = new RegExp(`^(.*)(?:${'<'}!--|--${'>'})`);
 
 function rejectHtmlComments(s) {
   const matches = htmlCommentPattern.exec(s);
@@ -47,7 +47,7 @@ function rejectHtmlComments(s) {
 // something like that from something like importnotreally('power.js') which
 // is perfectly safe.
 
-const importPattern = /^(.*)\bimport\s*(\(|\/\/|\/\*)/m;
+const importPattern = /^(.*)\bimport\s*(?:\(|\/\/|\/\*)/m;
 
 function rejectImportExpressions(s) {
   const matches = importPattern.exec(s);
