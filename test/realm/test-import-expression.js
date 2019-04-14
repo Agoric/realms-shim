@@ -1,6 +1,6 @@
 import test from 'tape';
 import Realm from '../../src/realm';
-import { rejectImportExpressions } from '../../src/sourceParser';
+import { rejectDangerousSources } from '../../src/sourceParser';
 
 function codepointIsSyntacticWhitespace(i) {
   const c = String.fromCodePoint(i);
@@ -64,14 +64,14 @@ test('no-import-expression regexp', t => {
   // 'tape -r esm ./shim/test/**/*.js') sees the 'import' statements and
   // rewrites them.
 
-  t.equal(rejectImportExpressions(safe), undefined, 'safe');
-  t.equal(rejectImportExpressions(safe2), undefined, 'safe2');
-  t.equal(rejectImportExpressions(safe3), undefined, 'safe3');
-  t.throws(() => rejectImportExpressions(obvious), SyntaxError, 'obvious');
-  t.throws(() => rejectImportExpressions(whitespace), SyntaxError, 'whitespace');
-  t.throws(() => rejectImportExpressions(comment), SyntaxError, 'comment');
-  t.throws(() => rejectImportExpressions(doubleslashcomment), SyntaxError, 'doubleslashcomment');
-  t.throws(() => rejectImportExpressions(newline), SyntaxError, 'newline');
+  t.equal(rejectDangerousSources(safe), undefined, 'safe');
+  t.equal(rejectDangerousSources(safe2), undefined, 'safe2');
+  t.equal(rejectDangerousSources(safe3), undefined, 'safe3');
+  t.throws(() => rejectDangerousSources(obvious), SyntaxError, 'obvious');
+  t.throws(() => rejectDangerousSources(whitespace), SyntaxError, 'whitespace');
+  t.throws(() => rejectDangerousSources(comment), SyntaxError, 'comment');
+  t.throws(() => rejectDangerousSources(doubleslashcomment), SyntaxError, 'doubleslashcomment');
+  t.throws(() => rejectDangerousSources(newline), SyntaxError, 'newline');
 
   // mentioning import() in a comment *should* be safe, but requires a full
   // parser to check, and a cheap regexp test will conservatively reject it.

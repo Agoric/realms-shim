@@ -15,7 +15,7 @@ import {
 } from './commons';
 import { getOptimizableGlobals } from './optimizer';
 import { createScopeHandler } from './scopeHandler';
-import { rejectImportExpressions } from './sourceParser';
+import { rejectDangerousSources } from './sourceParser';
 import { assert, throwTantrum } from './utilities';
 
 function buildOptimizer(constants) {
@@ -99,7 +99,7 @@ export function createSafeEvaluatorFactory(unsafeRec, safeGlobal) {
     const safeEval = {
       eval(src) {
         src = `${src}`;
-        rejectImportExpressions(src);
+        rejectDangerousSources(src);
         scopeHandler.allowUnsafeEvaluatorOnce();
         let err;
         try {
