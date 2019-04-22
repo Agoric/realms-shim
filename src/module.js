@@ -1,224 +1,283 @@
-/*global mu harden*/
+/*global harden*/
 //---------
 
-// An example of original module source:
+// See https://tc39.github.io/ecma262/#importentry-record for
+// terminology and examples.
+// "tdz" is "temporal dead zone"
 
-// import ex as im from 'foo';
-// export let mu = 88;
-// mu = 99;
-// export let co == 77;
+// ModuleRecord: {
+//   // Accurately verify has no "h$_stuff" variable names.
+//   moduleSource: original string,
+//   // rest are generated from moduleSource
+//   imports: { _specifierName_: [importName*] },
+//   liveExports: [liveExportName*],
+//   fixedExports: [fixedExportName*],
+//   functorSource: rewritten string
+//   optSourceMap: from moduleSource to functorSource
+// }
 
-// "ex" is the exportName, the name under which module "foo" exports a
-// binding.
-//
-// "im" in the lexical variable name within this module bound to the
-// "foo" module's "ex" export.
-//
-// "mu" is a lexical variable declared, exported from this module, and
-// assigned to within this module. Thus, we need a binding that can be
-// updated by assignment. We can transform the declaration because it
-// must appear at top level, and therefore outside any functions in
-// the module. However, we cannot transform the assignments because
-// that can appear within functions. Since this case is rare, it is ok
-// for it to transform into something expensive, i.e., a free variable
-// whose accesses cause a proxy trap.
-//
-// "co" is a lexical declared variable, exported from this module, but
-// never assigned to within this module. Thus, the variable within
-// this module can become a `const` declaration. We still need a live
-// binding because it is still in temporal dead zone until initialized.
+const barModuleRecord = harden({
+  moduleSource: `\
+// Adapted from table 43
+import v from 'mod1';
+import * as ns from 'mod1';
+import {x} from "mod2";
+import {x as w} from "mod2";
+import "mod3";
 
-//---------
+// Adapted from table 45
+export let mu = 88;
+mu = mu + 1;  // live because assigned to
+export let co == 77;
+export default 42;
+const xx = 33;
+export {xx};
+export {x as vv};  // exports the x we imported. Therefore assumed live.
 
-// Turn the module above into a generator, whose phases reflect the
-// phases of initializing a group of modules. This way, we can execute
-// the first phases of all the modules in a group before executing any
-// second phases, etc, while keeping all the phases of each module in
-// the same module scope.
-//
-// The first phase yields a description of the exports of this
-// module. This export description is a record of objects
-// encapsulating the state of each exported live binding.
-//
-// The second phase is provided the $h_import giving access to all the
-// bindings that this module imports from the exports of other modules.
-//
-// The third phase is the actual module initialization, where we
-// execute the transformed body of the module. This phase is provided
-// the $h_init record of init functions, used to initialize declared
-// exported bindings, so they are no longer in a temporal dead zone.
-//
-// Even aside from the free variables of the original module source,
-// this transformed module has free variables for every variable, like
-// `mu`, that the original module source both exports and anywhere
-// assigns to. This generator must be executed in a `with(aProxy)`
-// environment so that assignments to these variables can be trapped,
-// to update the live bindings of the import variables bound to this
-// export.
-(function* () {
+export {f} from "foo";
+export {g as h} from "foo";
+// export * from "foo";
+`,
+
+  // Record of imported module specifier names to the importNames to
+  // that this module imports from that named module. "*" is that
+  // module's module namespace object itself
+  imports: {
+    "mod1": ["default", "*"],
+    "mod2": ["x"],
+    "mod3": [],
+    "foo": ["f", "g"]
+  },
   
-  // export phase
-  const $h_import = yield {
-    mu: true,
-    co: false
-  };
+  // exportNames of variables that are assigned to, or reexported and
+  // therefore assumed live.
+  liveExports: ["mu", "vv", "f", "h"],
+  
+  // exportNames of variables that are only initialized
+  fixedExports: ["co", "default", "xx"],
+  
+  functorSource: `(${
+    function($h_import, $h_once, $h_live) {
 
-  // import phase
-  let im;
-  $h_import['foo'].ex(n => {im = n;});
-  const $h_init = yield;
+      // import section
+      let v, ns, x, w;
+      $h_import({
+        "mod1": {
+          "default": [$h_a => {v = $h_a;}],
+          "*": [$h_a => {ns = $h_a;}]
+        },
+        "mod2": {
+          x: [$h_live.vv, $h_a => {x = $h_a;}, $h_a => {w = $h_a;}]
+        },
+        "mod3": {},
+        "foo": {
+          f: [$h_live.f],
+          g: [$h_live.h]
+        }
+      });
 
-  // module body
-  $h_init.mu(88);
-  mu = 99;  // free assignment trapped by the surrounding `with(aProxy)`
-  const co = $h_init.co(77);
+      // rewritten body
+      $h_live.mu(88);
+      mu = mu + 1;  // mu is free so that accesses will proxy-trap
+      const co = $h_once.co(77);
+      $h_once.default(42);
+      const vv = $h_once.y(44);
+    }
+  })`
 });
 
 //---------
 
-function makeRWExport(name) {
-  const qname = JSON.stringify(name);
-  let value = undefined;
-  let raw = true;
-  const observers = [];
+function makeModule(moduleRecord, registry, evaluator, preEndowments) {
+  const {
+    getOwnPropertyDescriptors: getProps,
+    defineProperty: defProp,
+    create,
+    freeze,
+    entries
+  } = Object;
 
-  const get = () => {
-    if (raw) { throw new ReferenceError(`${qname} not initialized`); }
-    return value;
-  };
-  const observe = observer => {
-    observers.push(observer);
-    if (!raw) { observer(value); }
-  };
-  const set = newValue => {
-    if (raw) { throw new ReferenceError(`${qname} not initialized`); }
-    value = newValue;
-    for (let observer of observers) { observer(newValue); }
-  };
-  const init = initValue => {
-    if (!raw) { throw new Error(`Internal: ${qname} initialized twice`); }
-    raw = false;
-    set(initValue);
-  };
+  // {exportName: getter} module namespace object
+  const moduleNS = create(null);
+
+  // {liveExportName: accessor} added to endowments for proxy traps
+  const trappers = create(null);
+
+  // {fixedExportName: init(initValue) :initValue} used by the
+  // rewritten code to initialize exported fixed bindings.
+  const hOnce = create(null);
+
+  // {liveExportName: update(newValue)} used by the rewritten code to
+  // both initiailize and update live bindings.
+  const hLive = create(null);
+
+  // {importName: notify(update(newValue))} Used to by code that
+  // imports one of my exports, so that their update function will be
+  // notified when this binding is initialized or updated.
+  const notifiers = create(null);
+
   
-  return harden({
-    moduleDesc: {
+  for (const fixedExportName of moduleRecord.fixedExports) {
+    const qname = JSON.stringify(fixedExportName);
+    
+    // fixed binding state
+    let value = undefined;
+    let tdz = true;
+    let optUpdaters = [];  // optUpdaters === null iff tdz === false
+    
+    // tdz sensitive getter
+    function get() {
+      if (tdz) {
+        throw new ReferenceError(`binding ${qname} not yet initialized`);
+      }
+      return value;
+    }
+
+    // leave tdz once
+    function init(initValue) {
+      // init with initValue of a declared const binding, and return
+      // it.
+      if (!tdz) {
+        throw new Error(`Internal: binding ${qname} already initialized`);
+      }
+      value = initValue;
+      const updaters = optUpdaters;
+      optUpdaters = null;
+      tdz = false;
+      for (let update of updaters) { update(initValue); }
+      return initValue;
+    }
+
+    // If still, tdz, register update for notification later.
+    // Otherwise, update now.
+    function notify(update) {
+      if (tdz) {
+        optUpdaters.push(update);
+      } else {
+        update(value);
+      }
+    }
+
+    defProp(moduleNS, fixedExportName, {
       get,
+      set: undefined,
       enumerable: true,
       configurable: false
-    },
-    optEndowmentDesc: {
+    });
+    hOnce[fixedExportName] = init;
+    notifiers[fixedExportName] = notify;
+  }
+
+  for (const liveExportName of moduleRecord.liveExports) {
+    const qname = JSON.stringify(liveExportName);
+    
+    // live binding state
+    let value = undefined;
+    let tdz = true;
+    let updaters = [];
+
+    // tdz sensitive getter
+    function get() {
+      if (tdz) {
+        throw new ReferenceError(`binding ${qname} not yet initialized`);
+      }
+      return value;
+    }
+
+    // This must be usable locally for the translation of initializing
+    // a declared local live binding variable.
+    //
+    // For reexported variable, this is also an update function to
+    // register for notification with the downstream import, which we
+    // must assume to be live. Thus, it can be called independent of
+    // tdz but always leaves tdz. Such reexporting creates a tree of
+    // bindings. This lets the tree be hooked up even if the imported
+    // module isn't initialized yet, as may happen in cycles.
+    function update(newValue) {
+      value = newValue;
+      tdz = false;
+      for (let update of updaters) { update(newValue); }
+    }
+
+    // tdz sensitive setter
+    function set(newValue) {
+      if (tdz) {
+        throw new ReferenceError(`binding ${qname} not yet initialized`);
+      }
+      value = newValue;
+      for (let update of updaters) { update(newValue); }
+    }
+    
+    // Always register the update function.
+    // If not in tdz, also update now.
+    function notify(update) {
+      updaters.push(update);
+      if (!tdz) {
+        update(value);
+      }
+    }
+
+    defProp(moduleNS, liveExportName, {
+      get,
+      set: undefined,
+      enumerable: true,
+      configurable: false
+    });
+    defProp(trappers, liveExportName, {
       get,
       set,
       enumerable: true,
-      configurable: false
-    },
-    observe,
-    init
-  });
-}
+      configurable: false      
+    });
+    hLive[liveExportName] = update;
+    notifiers[liveExportName] = notify;
+  }
 
-function makeROExport(name) {
-  const qname = JSON.stringify(name);
-  let raw = true;
-  let value = undefined;
-  const optObservers = [];
+  function notifyStar(update) {
+    update(moduleNS);
+  }
+  notifiers['*'] = notifyStar;
 
-  const get = () => {
-    if (raw) { throw new ReferenceError(`${qname} not initialized`); }
-    return value;
-  };
-  const observe = observer => {
-    if (raw) {
-      optObservers.push(observer);
-    } else {
-      observer(value);
+  // The updateRecord must conform to moduleRecord.imports
+  function hImport(updateRecord) {
+    // By the time hImport is called, the registry should already be
+    // initialized with modules that satisfy moduleRecord.imports
+    for (const [specifier, importNames] of entries(updateRecord)) {
+      const module = registry[specifier];
+      module.initialize(); // bottom up cycle tolerant
+      const notifiers = module.notifiers;
+      for (const [importName, updaters] of entries(importNames)) {
+        const notify = notifiers[importName];
+        for (const update of updaters) {
+          notify(update);
+        }
+      }
     }
-  };
-  const init = initValue => {
-    if (!raw) { throw new Error(`Internal: ${qname} initialized twice`); }
-    raw = false;
-    value = initValue;
-    for (let observer of optObservers) { observer(initValue); }
-    optObservers = null;
-  };
+  }
+
+  const endowments = create(null, {
+    // TODO should check for collisions.
+    // TODO should check that preEndowments has no $h_stuff names.
+    // Neither is a security hole since trappers replace conflicting
+    // preEndowments
+    ...getProps(preEndowments), ...getProps(trappers)
+  });
+  let optFunctor = evaluator(moduleRecord.functorSource, endowments);
+  function initialize() {
+    if (optFunctor) {
+      // uninitialized
+      const functor = optFunctor;
+      optFunctor = null;
+      // initializing
+      functor(harden(hImport), harden(hOnce), harden(hLive));
+      // initialized
+    }
+  }
   
   return harden({
-    moduleDesc: {
-      get,
-      enumerable: true,
-      configurable: false
-    },
-    observe,
-    init
+    moduleRecord,
+    moduleNS,
+    notifiers,
+    initialize
   });
-}
-
-
-
-function makeHExport(
-  // Pass in an empty expensible object. hExport will make it into an
-  // emulated module namespace object and harden it.
-  moduleNS,
-  
-  // Pass in a pre-populated object to be used as the endowments for a
-  // realm.evaluate on the module as translated to an evaluable
-  // script. hExport will add bindings for names in the module-shim
-  // reserved namespace, i.e., names beginning with "$h_", which
-  // should not interfere with an of the pre-populated names. Then
-  // freeze the endowments object. Do not yet harden it, because its
-  // $h_import may not yet be populated.
-  //
-  // TODO we should verify that endowments has no names in this
-  // reserved namespace. The lack of such verification should not be a
-  // security hole, because any module code that uses reserved names
-  // should get them from a source that shadows or replaces any
-  // prior/illegitimate definitions of these reserved names.
-  endowments,
-
-  // Pass in an empty extensible object. hExport will populate it with
-  // observe callback functions with which importers of this module
-  // can register observers to update their imported variables. It
-  // will also populate it with an "export" property mapping to the
-  // module namespace object itself. hExport then hardens
-  // observes. This should not conflict with any exportNames because
-  // "export" is a keyword other than "default".
-  observes,
-
-  // Pass in an object that will be populated with the namespaces from
-  // which this module will obtain its imports. This will include the
-  // observes object representing the exports of other
-  // modules. hExport does not freeze or harden hImport because it
-  // may not yet be populated.
-  hImport
-
-  // Returns the hExport function defined below
-) {
-  const { defineProperty: defProp, create, freeze, entries } = Object;
-  const result = create(null);
-
-  // exportStates is a record mapping from exportNames to either
-  // RWExportState or ROExportState objects, made by makeRWExport
-  // or makeROExport
-  //
-  // Returns a record mapping from exportNames to init functions, used
-  // to transition the variable from an unintialized to an initialied
-  // state.
-  function hExport(exportStates) {
-    for (let [exportName, exportState] of entries(exportStates)) {
-      defProp(moduleNS, exportName, exportState.moduleDesc);
-      const optEDesc = exportState.optEndowmentDesc;
-      if (optEDesc) {
-        defProp(endowments, exportName, optEDesc);
-      }
-      observes[exportName] = exportState.observe;
-      result[exportName] = exportState.init;
-    }
-
-    freeze(endowments);
-    observes.export = moduleNS;
-    harden(observes);
-    return harden(result);
-  };
-  return harden(hExport);
 }
