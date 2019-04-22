@@ -57,7 +57,7 @@ export {g as h} from 'foo';
 
   // { _liveExportName_: [localName?] }
   // exportNames of variables that are assigned to, or reexported and
-  // therefore assumed live. A reexported variable may not have any
+  // therefore assumed live. A reexported variable might not have any
   // localName.
   liveExports: { mu: ['mu'], ex: ['lo'], vv: ['w'], f: [], h: [] },
 
@@ -115,7 +115,7 @@ function makeModule(moduleRecord, registry, evaluator, preEndowments) {
   // {localName: accessor} added to endowments for proxy traps
   const trappers = create(null);
 
-  // {fixedExportName: init(initValue) :initValue} used by the
+  // {fixedExportName: init(initValue) -> initValue} used by the
   // rewritten code to initialize exported fixed bindings.
   const hOnce = create(null);
 
@@ -160,7 +160,7 @@ function makeModule(moduleRecord, registry, evaluator, preEndowments) {
       return initValue;
     }
 
-    // If still, tdz, register update for notification later.
+    // If still tdz, register update for notification later.
     // Otherwise, update now.
     function notify(update) {
       if (tdz) {
@@ -256,14 +256,18 @@ function makeModule(moduleRecord, registry, evaluator, preEndowments) {
   notifiers['*'] = notifyStar;
 
   // The updateRecord must conform to moduleRecord.imports
+  // updateRecord = { _specifier_: importUpdaters }
+  // importUpdaters = { _importName_: [update(newValue)*] }}
   function hImport(updateRecord) {
     // By the time hImport is called, the registry should already be
     // initialized with modules that satisfy moduleRecord.imports
-    for (const [specifier, importNames] of entries(updateRecord)) {
+    // registry = { _specifier_: { initialize, notifiers }}
+    // notifiers = { _importName_: notify(update(newValue))}
+    for (const [specifier, importUpdaters] of entries(updateRecord)) {
       const module = registry[specifier];
-      module.initialize(); // bottom up cycle tolerant
+      module.initialize();  // bottom up cycle tolerant
       const notifiers = module.notifiers;
-      for (const [importName, updaters] of entries(importNames)) {
+      for (const [importName, updaters] of entries(importUpdaters)) {
         const notify = notifiers[importName];
         for (const update of updaters) {
           notify(update);
@@ -279,6 +283,7 @@ function makeModule(moduleRecord, registry, evaluator, preEndowments) {
     // preEndowments
     ...getProps(preEndowments), ...getProps(trappers)
   });
+  
   let optFunctor = evaluator(moduleRecord.functorSource, endowments);
   function initialize() {
     if (optFunctor) {
