@@ -1,4 +1,4 @@
-/* global mu */
+/* global mu lo */
 const harden = Object.freeze;  // TODO fix
 
 
@@ -10,9 +10,9 @@ const harden = Object.freeze;  // TODO fix
 //   // Accurately verify has no "h$_stuff" variable names.
 //   moduleSource: original string,
 //   // rest are generated from moduleSource
-//   imports: { _specifierName_: [importName*] },
-//   liveExports: [liveExportName*],
-//   fixedExports: [fixedExportName*],
+//   imports: { _specifierName_: { _importName_: [localName*] }},
+//   liveExports: { _liveExportName_: [localName?] },
+//   fixedExports: { _fixedExportName_: [localName?] },
 //   functorSource: rewritten string
 //   optSourceMap: from moduleSource to functorSource
 // }
@@ -26,36 +26,45 @@ import {x} from 'mod2';
 import {x as w} from 'mod2';
 import 'mod3';
 
-// Adapted from table 45
 export let mu = 88;
 mu = mu + 1;  // live because assigned to
+let lo = 22;
+lo = lo + 1;  // live because assigned to
+export {lo as ex};
+
+// Adapted from table 45
 export let co == 77;
 export default 42;
 const xx = 33;
 export {xx};
-export {x as vv};  // exports the x we imported. Therefore assumed live.
 
+export {w as vv};  // exports the w we imported. Therefore assumed live.
 export {f} from 'foo';
 export {g as h} from 'foo';
 // export * from 'foo';
 `,
 
-  // Record of imported module specifier names to the importNames to
-  // that this module imports from that named module. "*" is that
-  // module's module namespace object itself
+  // { _specifierName_: { _importName_: [localName*] }}
+  // Record of imported module specifier names to record of importName
+  // to list of localNames.
+  // The importName "*" is that module's module namespace object.
   imports: {
-    mod1: ['default', '*'],
-    mod2: ['x'],
-    mod3: [],
-    foo: ['f', 'g']
+    mod1: { default: ['v'], '*': ['ns'] },
+    mod2: { x: ['x', 'w'] },
+    mod3: {},
+    foo: { f: [], g: [] }
   },
 
+  // { _liveExportName_: [localName?] }
   // exportNames of variables that are assigned to, or reexported and
-  // therefore assumed live.
-  liveExports: ['mu', 'vv', 'f', 'h'],
+  // therefore assumed live. A reexported variable may not have any
+  // localName.
+  liveExports: { mu: ['mu'], ex: ['lo'], vv: ['w'], f: [], h: [] },
 
-  // exportNames of variables that are only initialized
-  fixedExports: ['co', 'default', 'xx'],
+  // { _fixedExportName_: [localName?] }
+  // exportNames of variables that are only initialized. The
+  // exportName 'default' has no localName.
+  fixedExports: { co: ['co'], default: [], xx: ['xx'] },
 
   functorSource: `(${
     function($h_import, $h_once, $h_live) {
@@ -79,10 +88,13 @@ export {g as h} from 'foo';
 
       // rewritten body
       $h_live.mu(88);
-      mu = mu + 1;  // mu is free so that accesses will proxy-trap
+      mu = mu + 1;  // mu is free so that access will proxy-trap
+      $h_live.ex(22);
+      lo = lo + 1;  // lo is free so that access will proxy-trap
+
       const co = $h_once.co(77);
       $h_once.default(42);
-      const vv = $h_once.y(44);
+      const xx = $h_once.xx(33);
     }
   })`
 });
@@ -100,7 +112,7 @@ function makeModule(moduleRecord, registry, evaluator, preEndowments) {
   // {exportName: getter} module namespace object
   const moduleNS = create(null);
 
-  // {liveExportName: accessor} added to endowments for proxy traps
+  // {localName: accessor} added to endowments for proxy traps
   const trappers = create(null);
 
   // {fixedExportName: init(initValue) :initValue} used by the
@@ -117,7 +129,7 @@ function makeModule(moduleRecord, registry, evaluator, preEndowments) {
   const notifiers = create(null);
 
 
-  for (const fixedExportName of moduleRecord.fixedExports) {
+  for (const [fixedExportName, _] of entries(moduleRecord.fixedExports)) {
     const qname = JSON.stringify(fixedExportName);
 
     // fixed binding state
@@ -164,11 +176,12 @@ function makeModule(moduleRecord, registry, evaluator, preEndowments) {
       enumerable: true,
       configurable: false
     });
+    
     hOnce[fixedExportName] = init;
     notifiers[fixedExportName] = notify;
   }
 
-  for (const liveExportName of moduleRecord.liveExports) {
+  for (const [liveExportName, vars] of entries(moduleRecord.liveExports)) {
     const qname = JSON.stringify(liveExportName);
 
     // live binding state
@@ -223,12 +236,16 @@ function makeModule(moduleRecord, registry, evaluator, preEndowments) {
       enumerable: true,
       configurable: false
     });
-    defProp(trappers, liveExportName, {
-      get,
-      set,
-      enumerable: true,
-      configurable: false
-    });
+
+    for (const localName of vars) {
+      defProp(trappers, localName, {
+        get,
+        set,
+        enumerable: true,
+        configurable: false
+      });
+    }
+
     hLive[liveExportName] = update;
     notifiers[liveExportName] = notify;
   }
