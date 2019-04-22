@@ -56,6 +56,9 @@ export {g as h} from 'foo';
   // Record of imported module specifier names to record of importName
   // to list of localNames.
   // The importName "*" is that module's module namespace object.
+  //
+  // TODO: These localNames are not used. Should we revert to
+  // [importName*] ?
   imports: {
     mod1: { default: ['v'], '*': ['ns'] },
     mod2: { x: ['x', 'w'] },
@@ -67,11 +70,20 @@ export {g as h} from 'foo';
   // exportNames of variables that are assigned to, or reexported and
   // therefore assumed live. A reexported variable might not have any
   // localName.
-  liveExports: { mu: ['mu'], ex: ['lo'], vv: ['w'], f: [], h: [] },
+  //
+  // It is strange that we say "vv: []" rather than "vv: ['w']" since
+  // 'w' is the local name we're exporting as vv. However, it
+  // translates to a declared local name, whereas the localNames of
+  // liveExports are used to set up proxy trapping, which doesn't
+  // apply to reexported names.
+  liveExports: { mu: ['mu'], ex: ['lo'], vv: [], f: [], h: [] },
 
   // { _fixedExportName_: [localName?] }
   // exportNames of variables that are only initialized. The
   // exportName 'default' has no localName.
+  //
+  // TODO: These localNames are not used. Should we revert to
+  // [fixedExportName*] ?
   fixedExports: { co: ['co'], default: [], xx: ['xx'] },
 
   functorSource: `(${
