@@ -1,6 +1,14 @@
 /* global mu lo */
 const harden = Object.freeze;  // TODO fix
 
+// TODO get from './common'
+const {
+  getOwnPropertyDescriptors: getProps,
+  defineProperty: defProp,
+  create,
+  entries
+} = Object;
+
 
 // See https://tc39.github.io/ecma262/#importentry-record for
 // terminology and examples.
@@ -102,13 +110,6 @@ export {g as h} from 'foo';
 //---------
 
 function makeModule(moduleRecord, registry, evaluator, preEndowments) {
-  const {
-    getOwnPropertyDescriptors: getProps,
-    defineProperty: defProp,
-    create,
-    entries
-  } = Object;
-
   // {exportName: getter} module namespace object
   const moduleNS = create(null);
 
