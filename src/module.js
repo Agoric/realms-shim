@@ -124,9 +124,9 @@ function makeModule(moduleRecord, registry, evaluator, preEndowments) {
   // both initiailize and update live bindings.
   const hLive = create(null);
 
-  // {importName: notify(update(newValue))} Used to by code that
-  // imports one of my exports, so that their update function will be
-  // notified when this binding is initialized or updated.
+  // {importName: notify(update(newValue))} Used by code that imports
+  // one of this module's exports, so that their update function will
+  // be notified when this binding is initialized or updated.
   const notifiers = create(null);
 
 
