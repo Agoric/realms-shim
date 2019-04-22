@@ -34,9 +34,9 @@ export const {
  * Performance:
  * 1. The native call is about 10x faster on FF than chrome
  * 2. The version using Function.bind() is about 100x slower on FF,
- *    equal on chrome, 2x slower on Safari 
+ *    equal on chrome, 2x slower on Safari
  * 3. The version using a spread and Reflect.apply() is about 10x
- *    slower on FF, equal on chrome, 2x slower on Safari 
+ *    slower on FF, equal on chrome, 2x slower on Safari
  *
  * const bind = Function.prototype.bind;
  * const uncurryThis = bind.bind(bind.call);

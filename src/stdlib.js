@@ -111,7 +111,7 @@ export function getSharedGlobalDescs(unsafeGlobal) {
         // non standard situation.
         assert('value' in desc,
                `unexpected accessor on global property: ${name}`);
-        
+
         descriptors[name] = {
           value: desc.value,
           writable,

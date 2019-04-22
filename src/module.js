@@ -1,5 +1,6 @@
-/*global harden*/
-//---------
+/* global mu */
+const harden = Object.freeze;  // TODO fix
+
 
 // See https://tc39.github.io/ecma262/#importentry-record for
 // terminology and examples.
@@ -21,9 +22,9 @@ const barModuleRecord = harden({
 // Adapted from table 43
 import v from 'mod1';
 import * as ns from 'mod1';
-import {x} from "mod2";
-import {x as w} from "mod2";
-import "mod3";
+import {x} from 'mod2';
+import {x as w} from 'mod2';
+import 'mod3';
 
 // Adapted from table 45
 export let mu = 88;
@@ -34,43 +35,43 @@ const xx = 33;
 export {xx};
 export {x as vv};  // exports the x we imported. Therefore assumed live.
 
-export {f} from "foo";
-export {g as h} from "foo";
-// export * from "foo";
+export {f} from 'foo';
+export {g as h} from 'foo';
+// export * from 'foo';
 `,
 
   // Record of imported module specifier names to the importNames to
   // that this module imports from that named module. "*" is that
   // module's module namespace object itself
   imports: {
-    "mod1": ["default", "*"],
-    "mod2": ["x"],
-    "mod3": [],
-    "foo": ["f", "g"]
+    mod1: ['default', '*'],
+    mod2: ['x'],
+    mod3: [],
+    foo: ['f', 'g']
   },
-  
+
   // exportNames of variables that are assigned to, or reexported and
   // therefore assumed live.
-  liveExports: ["mu", "vv", "f", "h"],
-  
+  liveExports: ['mu', 'vv', 'f', 'h'],
+
   // exportNames of variables that are only initialized
-  fixedExports: ["co", "default", "xx"],
-  
+  fixedExports: ['co', 'default', 'xx'],
+
   functorSource: `(${
     function($h_import, $h_once, $h_live) {
 
       // import section
       let v, ns, x, w;
       $h_import({
-        "mod1": {
-          "default": [$h_a => {v = $h_a;}],
-          "*": [$h_a => {ns = $h_a;}]
+        mod1: {
+          default: [$h_a => {v = $h_a;}],
+          '*': [$h_a => {ns = $h_a;}]
         },
-        "mod2": {
+        mod2: {
           x: [$h_live.vv, $h_a => {x = $h_a;}, $h_a => {w = $h_a;}]
         },
-        "mod3": {},
-        "foo": {
+        mod3: {},
+        foo: {
           f: [$h_live.f],
           g: [$h_live.h]
         }
@@ -93,7 +94,6 @@ function makeModule(moduleRecord, registry, evaluator, preEndowments) {
     getOwnPropertyDescriptors: getProps,
     defineProperty: defProp,
     create,
-    freeze,
     entries
   } = Object;
 
@@ -116,15 +116,15 @@ function makeModule(moduleRecord, registry, evaluator, preEndowments) {
   // notified when this binding is initialized or updated.
   const notifiers = create(null);
 
-  
+
   for (const fixedExportName of moduleRecord.fixedExports) {
     const qname = JSON.stringify(fixedExportName);
-    
+
     // fixed binding state
     let value = undefined;
     let tdz = true;
     let optUpdaters = [];  // optUpdaters === null iff tdz === false
-    
+
     // tdz sensitive getter
     function get() {
       if (tdz) {
@@ -170,7 +170,7 @@ function makeModule(moduleRecord, registry, evaluator, preEndowments) {
 
   for (const liveExportName of moduleRecord.liveExports) {
     const qname = JSON.stringify(liveExportName);
-    
+
     // live binding state
     let value = undefined;
     let tdz = true;
@@ -196,7 +196,7 @@ function makeModule(moduleRecord, registry, evaluator, preEndowments) {
     function update(newValue) {
       value = newValue;
       tdz = false;
-      for (let update of updaters) { update(newValue); }
+      for (const update of updaters) { update(newValue); }
     }
 
     // tdz sensitive setter
@@ -205,9 +205,9 @@ function makeModule(moduleRecord, registry, evaluator, preEndowments) {
         throw new ReferenceError(`binding ${qname} not yet initialized`);
       }
       value = newValue;
-      for (let update of updaters) { update(newValue); }
+      for (const update of updaters) { update(newValue); }
     }
-    
+
     // Always register the update function.
     // If not in tdz, also update now.
     function notify(update) {
@@ -227,7 +227,7 @@ function makeModule(moduleRecord, registry, evaluator, preEndowments) {
       get,
       set,
       enumerable: true,
-      configurable: false      
+      configurable: false
     });
     hLive[liveExportName] = update;
     notifiers[liveExportName] = notify;
@@ -273,7 +273,7 @@ function makeModule(moduleRecord, registry, evaluator, preEndowments) {
       // initialized
     }
   }
-  
+
   return harden({
     moduleRecord,
     moduleNS,
