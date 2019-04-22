@@ -32,7 +32,7 @@ test('Global default values', t => {
   t.equal(descs.Error.value, mockGlobal.Error);
 
   for (const name of ['Date', 'Error']) {
-    const desc = descs['Date'];
+    const desc = descs[name];
     t.notOk(desc.enumerable, `${name} should not be enumerable`);
     t.ok(desc.configurable, `${name} should be configurable`);
     t.ok(desc.writable, `${name} should be writable`);
