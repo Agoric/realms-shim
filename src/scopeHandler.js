@@ -1,4 +1,4 @@
-import { freeze, getPrototypeOf, objectHasOwnProperty } from './commons';
+import { freeze, objectHasOwnProperty } from './commons';
 import { throwTantrum } from './utilities';
 
 /**

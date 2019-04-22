@@ -144,7 +144,7 @@ function makeModule(moduleRecord, registry, evaluator, preEndowments) {
       const updaters = optUpdaters;
       optUpdaters = null;
       tdz = false;
-      for (let update of updaters) { update(initValue); }
+      for (const update of updaters) { update(initValue); }
       return initValue;
     }
 
@@ -174,7 +174,7 @@ function makeModule(moduleRecord, registry, evaluator, preEndowments) {
     // live binding state
     let value = undefined;
     let tdz = true;
-    let updaters = [];
+    const updaters = [];
 
     // tdz sensitive getter
     function get() {
