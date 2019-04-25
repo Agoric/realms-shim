@@ -14,7 +14,14 @@ const {
 // terminology and examples.
 // "tdz" is "temporal dead zone"
 
-// ModuleRecord: {
+// A bit of terminology change:
+// A _ModuleStaticRecord_ contains only static info derived from the
+// module source text in isolation.
+// A _ModuleInstance_ is an object much like the "ModuleRecord" of the
+// spec that corresponds to an individual instantiation of a
+// ModuleStaticRecord in naming environments.
+
+// ModuleStaticRecord: {
 //   // Accurately verify has no "h$_stuff" variable names.
 //   moduleSource: original string,
 //   // rest are generated from moduleSource
@@ -25,7 +32,11 @@ const {
 //   optSourceMap: from moduleSource to functorSource
 // }
 
-const barModuleRecord = harden({
+// Example for module bar. barModuleStaticRecord.moduleSource is the
+// hypothetical source string from which the rest of
+// barModuleStaticRecord is generated.
+
+const barModuleStaticRecord = harden({
   moduleSource: `\
 // Adapted from table 43
 import v from 'mod1';
@@ -121,28 +132,31 @@ export {g as h} from 'foo';
 
 //---------
 
-function makeModule(moduleRecord, registry, evaluator, preEndowments) {
-  // {exportName: getter} module namespace object
+function makeModuleInstance(moduleStaticRecord,
+                            importNS,
+                            evaluator,
+                            preEndowments) {
+  // {_exportName_: getter} module namespace object
   const moduleNS = create(null);
 
-  // {localName: accessor} added to endowments for proxy traps
+  // {_localName_: accessor} added to endowments for proxy traps
   const trappers = create(null);
 
-  // {fixedExportName: init(initValue) -> initValue} used by the
+  // {_fixedExportName_: init(initValue) -> initValue} used by the
   // rewritten code to initialize exported fixed bindings.
   const hOnce = create(null);
 
-  // {liveExportName: update(newValue)} used by the rewritten code to
+  // {_liveExportName_: update(newValue)} used by the rewritten code to
   // both initiailize and update live bindings.
   const hLive = create(null);
 
-  // {importName: notify(update(newValue))} Used by code that imports
+  // {_importName_: notify(update(newValue))} Used by code that imports
   // one of this module's exports, so that their update function will
   // be notified when this binding is initialized or updated.
   const notifiers = create(null);
 
 
-  for (const [fixedExportName, _] of entries(moduleRecord.fixedExports)) {
+  for (const [fixedExportName, _] of entries(moduleStaticRecord.fixedExports)) {
     const qname = JSON.stringify(fixedExportName);
 
     // fixed binding state
@@ -194,7 +208,8 @@ function makeModule(moduleRecord, registry, evaluator, preEndowments) {
     notifiers[fixedExportName] = notify;
   }
 
-  for (const [liveExportName, vars] of entries(moduleRecord.liveExports)) {
+  for (const [liveExportName, vars] of
+       entries(moduleStaticRecord.liveExports)) {
     const qname = JSON.stringify(liveExportName);
 
     // live binding state
@@ -218,7 +233,7 @@ function makeModule(moduleRecord, registry, evaluator, preEndowments) {
     // must assume to be live. Thus, it can be called independent of
     // tdz but always leaves tdz. Such reexporting creates a tree of
     // bindings. This lets the tree be hooked up even if the imported
-    // module isn't initialized yet, as may happen in cycles.
+    // module instance isn't initialized yet, as may happen in cycles.
     function update(newValue) {
       value = newValue;
       tdz = false;
@@ -268,16 +283,17 @@ function makeModule(moduleRecord, registry, evaluator, preEndowments) {
   }
   notifiers['*'] = notifyStar;
 
-  // The updateRecord must conform to moduleRecord.imports
+  // The updateRecord must conform to moduleStaticRecord.imports
   // updateRecord = { _specifier_: importUpdaters }
   // importUpdaters = { _importName_: [update(newValue)*] }}
   function hImport(updateRecord) {
-    // By the time hImport is called, the registry should already be
-    // initialized with modules that satisfy moduleRecord.imports
-    // registry = { _specifier_: { initialize, notifiers }}
+    // By the time hImport is called, the importNS should already be
+    // initialized with module instances that satisfy
+    // moduleStaticRecord.imports.
+    // importNS = Map[_specifier_, { initialize, notifiers }]
     // notifiers = { _importName_: notify(update(newValue))}
     for (const [specifier, importUpdaters] of entries(updateRecord)) {
-      const module = registry[specifier];
+      const module = importNS.get(specifier);
       module.initialize();  // bottom up cycle tolerant
       const notifiers = module.notifiers;
       for (const [importName, updaters] of entries(importUpdaters)) {
@@ -297,7 +313,7 @@ function makeModule(moduleRecord, registry, evaluator, preEndowments) {
     ...getProps(preEndowments), ...getProps(trappers)
   });
   
-  let optFunctor = evaluator(moduleRecord.functorSource, endowments);
+  let optFunctor = evaluator(moduleStaticRecord.functorSource, endowments);
   function initialize() {
     if (optFunctor) {
       // uninitialized
@@ -310,7 +326,7 @@ function makeModule(moduleRecord, registry, evaluator, preEndowments) {
   }
 
   return harden({
-    moduleRecord,
+    moduleStaticRecord,
     moduleNS,
     notifiers,
     initialize
