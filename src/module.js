@@ -1,13 +1,16 @@
-/* global mu lo */
-const harden = Object.freeze;  // TODO fix
+/* global mu lo x g makeMap */
 
-// TODO get from './common'
+// TODO fix: get these from the right place
+const harden = Object.freeze;
 const {
   getOwnPropertyDescriptors: getProps,
   defineProperty: defProp,
   create,
   entries
 } = Object;
+function makeMap(...args) {
+  return harden(new Map(...args));
+}
 
 
 // See https://tc39.github.io/ecma262/#importentry-record for
@@ -25,9 +28,9 @@ const {
 //   // Accurately verify has no "h$_stuff" variable names.
 //   moduleSource: original string,
 //   // rest are generated from moduleSource
-//   imports: { _specifierName_: { _importName_: [localName*] }},
-//   liveExports: { _liveExportName_: [localName?] },
-//   fixedExports: { _fixedExportName_: [localName?] },
+//   imports: { _specifierName_: [importName*]},
+//   liveExportMap: { _liveExportName_: [localName?] },
+//   fixedExports: [fixedExportName*]},
 //   functorSource: rewritten string
 //   optSourceMap: from moduleSource to functorSource
 // }
@@ -63,18 +66,14 @@ export {g as h} from 'foo';
 // export * from 'foo';
 `,
 
-  // { _specifierName_: { _importName_: [localName*] }}
-  // Record of imported module specifier names to record of importName
-  // to list of localNames.
-  // The importName "*" is that module's module namespace object.
-  //
-  // TODO: These localNames are not used. Should we revert to
-  // [importName*] ?
+  // { _specifierName_: [importName_*]}
+  // Record of imported module specifier names to list of importNames.
+  // The importName '*' is that module's module namespace object.
   imports: {
-    mod1: { default: ['v'], '*': ['ns'] },
-    mod2: { x: ['x', 'w'] },
-    mod3: {},
-    foo: { f: [], g: [] }
+    mod1: ['default', '*'],
+    mod2: ['x'],
+    mod3: [],
+    foo: ['f', 'g']
   },
 
   // { _liveExportName_: [localName?] }
@@ -85,17 +84,14 @@ export {g as h} from 'foo';
   // It is strange that we say "vv: []" rather than "vv: ['w']" since
   // 'w' is the local name we're exporting as vv. However, it
   // translates to a declared local name, whereas the localNames of
-  // liveExports are used to set up proxy trapping, which doesn't
-  // apply to reexported names.
-  liveExports: { mu: ['mu'], ex: ['lo'], vv: [], f: [], h: [] },
+  // the liveExportMap are used to set up proxy trapping, which
+  // doesn't apply to reexported names.
+  liveExportMap: { mu: ['mu'], ex: ['lo'], vv: [], f: [], h: [] },
 
-  // { _fixedExportName_: [localName?] }
-  // exportNames of variables that are only initialized. The
-  // exportName 'default' has no localName.
-  //
-  // TODO: These localNames are not used. Should we revert to
-  // [fixedExportName*] ?
-  fixedExports: { co: ['co'], default: [], xx: ['xx'] },
+  // [fixedExportName*]
+  // exportNames of variables that are only initialized and used, but
+  // never assigned to. The exportName 'default' has no localName.
+  fixedExports: ['co', 'default', 'xx'],
 
   functorSource: `(${
     function($h_import, $h_once, $h_live) {
@@ -132,6 +128,82 @@ export {g as h} from 'foo';
 
 //---------
 
+// The modules that barModule imports from.
+// For this first test, we have no cycles.
+
+const mod1ModuleStaticRecord = harden({
+  moduleSource: `\
+export const v = 'v';
+export const v2 = 'v2';
+`,
+  imports: {},
+  liveExportMap: {},
+  fixedExports: ['v', 'v2'],
+
+  functorSource: `(${
+    function($h_import, $h_once, $h_live) {
+      $h_import({});
+
+      const v = $h_once.v('v');
+      const v2 = $h_once.vv('v2');
+    }
+  })`
+});
+
+const mod2ModuleStaticRecord = harden({
+  moduleSource: `\
+export let x = 'x';
+x = 'xChanged';
+`,
+  imports: {},
+  liveExportMap: {x: ['x']},
+  fixedExports: [],
+
+  functorSource: `(${
+    function($h_import, $h_once, $h_live) {
+      $h_import({});
+
+      $h_live.x('x');
+      x = 'xChanged';
+    }
+  })`
+});
+
+const mod3ModuleStaticRecord = harden({
+  moduleSource: '',
+  imports: {},
+  liveExportMap: {},
+  fixedExports: [],
+  functorSource: `(${
+    function($h_import, $h_once, $h_live) {
+      $h_import({});
+    }
+  })`
+});
+
+const fooModuleStaticRecord = harden({
+  moduleSource: `\
+export const f = 'f';
+export let g = 'g';
+g = 'gChanged';
+`,
+  imports: {},
+  liveExportMap: {g: ['g']},
+  fixedExports: ['f'],
+  functorSource: `(${
+    function($h_import, $h_once, $h_live) {
+      $h_import({});
+
+      const f = $h_once.f('f');
+      $h_live.g('g');
+      g = 'gChanged';
+    }
+  })`
+});
+
+
+//---------
+
 function makeModuleInstance(moduleStaticRecord,
                             importNS,
                             evaluator,
@@ -156,7 +228,7 @@ function makeModuleInstance(moduleStaticRecord,
   const notifiers = create(null);
 
 
-  for (const [fixedExportName, _] of entries(moduleStaticRecord.fixedExports)) {
+  for (const fixedExportName of moduleStaticRecord.fixedExports) {
     const qname = JSON.stringify(fixedExportName);
 
     // fixed binding state
@@ -203,13 +275,13 @@ function makeModuleInstance(moduleStaticRecord,
       enumerable: true,
       configurable: false
     });
-    
+
     hOnce[fixedExportName] = init;
     notifiers[fixedExportName] = notify;
   }
 
   for (const [liveExportName, vars] of
-       entries(moduleStaticRecord.liveExports)) {
+       entries(moduleStaticRecord.liveExportMap)) {
     const qname = JSON.stringify(liveExportName);
 
     // live binding state
@@ -312,7 +384,7 @@ function makeModuleInstance(moduleStaticRecord,
     // preEndowments
     ...getProps(preEndowments), ...getProps(trappers)
   });
-  
+
   let optFunctor = evaluator(moduleStaticRecord.functorSource, endowments);
   function initialize() {
     if (optFunctor) {
@@ -331,4 +403,69 @@ function makeModuleInstance(moduleStaticRecord,
     notifiers,
     initialize
   });
+}
+
+
+//---------
+
+// Loading phase produces a static record like the following, mapping
+// external specifier names to static module records. For this first
+// test, the external specifier names are the same as the internal
+// ones without remapping. To accommodate renamings, wiring, etc, the
+// loading phase actually must produce something more
+// interesting. Taking these renaming and wirings into account, the
+// result of the loading phase must satisfy every import with an
+// export, i.e., the loader must load the transitive closure of all
+// synchronous dependencies.
+
+const staticModuleMap = harden(makeMap(entries({
+  bar: barModuleStaticRecord,
+  mod1: mod1ModuleStaticRecord,
+  mod2: mod2ModuleStaticRecord,
+  mod3: mod3ModuleStaticRecord,
+  foo: fooModuleStaticRecord
+})));
+
+
+//---------
+
+// Instantiation phase produces a linked module instance. A module
+// instance is linked when its importNS is populated with linked
+// module instances whose exports satify this module's imports.
+
+function makeLinkedInstance(staticModuleMap,
+                            specifier,
+                            evaluator,
+                            preEndowments = {},
+                            registry = makeMap()) {
+  let linkedInstance = registry.get(specifier);
+  if (linkedInstance) {
+    return linkedInstance;
+  }
+
+  const linkedImportNS = makeMap();
+  linkedInstance = makeModuleInstance(staticModuleMap.get(specifier),
+                                      linkedImportNS,
+                                      evaluator,
+                                      preEndowments);
+  registry.set(specifier, linkedInstance);
+
+  for (const [modName, _] of entries(staticModuleMap.imports)) {
+    const importedInstance = makeLinkedInstance(staticModuleMap,
+                                                modName,
+                                                evaluator,
+                                                preEndowments,
+                                                registry);
+    linkedImportNS.set(modName, importedInstance);
+  }
+
+  return linkedInstance;
+}
+
+function testBar(evaluator) {
+  const barInstance = makeLinkedInstance(staticModuleMap,
+                                         'bar',
+                                         evaluator);
+  barInstance.initialize();
+  return barInstance;
 }
