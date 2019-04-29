@@ -137,7 +137,7 @@ export function createSafeEvaluatorFactory(unsafeRec, safeGlobal) {
     // this to a plain arrow function. Now that we have safeEval, use it.
     defineProperties(safeEval, {
       toString: {
-        value: safeEval("() => 'function eval() { [shim code] }'"),
+        value: safeEval("() => 'function eval' + '() { [shim code] }'"),
         writable: false,
         enumerable: false,
         configurable: true
