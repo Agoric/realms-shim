@@ -52,16 +52,45 @@ const importPattern = /^(.*)\bimport\s*(?:\(|\/\/|\/\*)/m;
 function rejectImportExpressions(s) {
   const matches = importPattern.exec(s);
   if (matches) {
-    // todo: if we have a full parser available, use it here. If there is no
-    // 'import' token in the string, we're safe.
-    // if (!parse(s).contains('import')) return;
     const linenum = matches[1].split('\n').length; // more or less
     throw new SyntaxError(
       `possible import expression rejected around line ${linenum}`);
   }
 }
 
+
+// The shim cannot correctly emulate a direct eval as explained at
+// https://github.com/Agoric/realms-shim/issues/12
+// Without rejecting apparent direct eval syntax, we would
+// accidentally evaluate these with an emulation of indirect eval. Tp
+// prevent future compatibility problems, in shifting from use of the
+// shim to genuine platform support for the proposal, we should
+// instead statically reject code that seems to contain a direct eval
+// expression.
+//
+// As with the dynamic import expression, to avoid a full parse, we do
+// this approximately with a regexp, that will also reject strings
+// that appear safely in comments or strings. Unlike dynamic import,
+// if we miss some, this only creates future compat problems, not
+// security problems. Thus, we are only trying to catch innocent
+// occurrences, not malicious one. In particular, `(eval)(...)` is
+// direct eval syntax that would not be caught by the following regexp.
+
+const someDirectEvalPattern = /^(.*)\beval\s*(?:\(|\/\/|\/\*)/m;
+
+function rejectSomeDirectEvalExpressions(s) {
+  const matches = someDirectEvalPattern.exec(s);
+  if (matches) {
+    const linenum = matches[1].split('\n').length; // more or less
+    throw new SyntaxError(
+      `possible direct eval expression rejected around line ${linenum}`);
+  }
+}
+
+
+
 export function rejectDangerousSources(s) {
   rejectHtmlComments(s);
   rejectImportExpressions(s);
+  rejectSomeDirectEvalExpressions(s);
 }
