@@ -163,17 +163,17 @@ export {g as h} from 'foo';
 
 const mod1ModuleStaticRecord = harden({
   moduleSource: `\
-export const v = 'v';
+export default 'v';
 export const v2 = 'v2';
 `,
   importEntries: [],
   liveExportEntries: [],
-  fixedExports: ['v', 'v2'],
+  fixedExports: ['default', 'v2'],
 
   functorSource: `(${function($h_import, $h_once, $h_live) {
     $h_import([]);
 
-    const v = $h_once.v('v');
+    const v = $h_once.default('v');
     const v2 = $h_once.vv('v2');
   }})`
 });
@@ -479,12 +479,16 @@ function validateStaticModuleMap(staticModuleMap) {
         const qname = JSON.stringify(specifierName);
         throw new TypeError(`Link error: No module at ${qname}`);
       }
+      if (!staticModuleMap.has(valueModule)) {
+        const qname = JSON.stringify(specifierName);
+        throw new TypeError(`Load error: ${qname} not in static map`);
+      }
       const exportSet = new Set(valueModule.fixedExports);
       for (const [name, _] of valueModule.liveExportEntries) {
         exportSet.add(name);
       }
       for (const importName of importNames) {
-        if (!exportSet.has(importName)) {
+        if (importName !== '*' && !exportSet.has(importName)) {
           const qsname = JSON.stringify(specifierName);
           const qiname = JSON.stringify(importName);
           throw new TypeError(
@@ -496,7 +500,7 @@ function validateStaticModuleMap(staticModuleMap) {
   }
 }
 
-//validateStaticModuleMap(barStaticModuleMap);
+validateStaticModuleMap(barStaticModuleMap);
 
 //---------
 
