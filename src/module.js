@@ -12,7 +12,6 @@ function makeMap(...args) {
   return harden(new Map(...args));
 }
 
-
 // See https://tc39.github.io/ecma262/#importentry-record for
 // terminology and examples.
 // "tdz" is "temporal dead zone"
@@ -99,37 +98,62 @@ export {g as h} from 'foo';
   // never assigned to. The exportName 'default' has no localName.
   fixedExports: ['co', 'default', 'xx'],
 
-  functorSource: `(${
-    function($h_import, $h_once, $h_live) {
+  functorSource: `(${function($h_import, $h_once, $h_live) {
+    // import section
+    let v, ns, x, w;
+    $h_import([
+      [
+        'mod1',
+        [
+          [
+            'default',
+            [
+              $h_a => {
+                v = $h_a;
+              }
+            ]
+          ],
+          [
+            '*',
+            [
+              $h_a => {
+                ns = $h_a;
+              }
+            ]
+          ]
+        ]
+      ],
+      [
+        'mod2',
+        [
+          [
+            'x',
+            [
+              $h_live.vv,
+              $h_a => {
+                x = $h_a;
+              },
+              $h_a => {
+                w = $h_a;
+              }
+            ]
+          ]
+        ]
+      ],
+      ['mod3', []],
+      ['foo', [['f', [$h_live.f]], ['g', [$h_live.h]]]]
+    ]);
 
-      // import section
-      let v, ns, x, w;
-      $h_import([
-        ['mod1', [
-          ['default', [$h_a => {v = $h_a;}]],
-          ['*', [$h_a => {ns = $h_a;}]]
-        ]],
-        ['mod2', [
-          ['x', [$h_live.vv, $h_a => {x = $h_a;}, $h_a => {w = $h_a;}]]
-        ]],
-        ['mod3', []],
-        ['foo', [
-          ['f', [$h_live.f]],
-          ['g', [$h_live.h]]
-        ]]
-      ]);
+    // rewritten body
+    $h_live.mu(88);
+    mu = mu + 1; // mu is free so that access will proxy-trap
+    $h_live.ex(22);
+    lo = lo + 1; // lo is free so that access will proxy-trap
 
-      // rewritten body
-      $h_live.mu(88);
-      mu = mu + 1;  // mu is free so that access will proxy-trap
-      $h_live.ex(22);
-      lo = lo + 1;  // lo is free so that access will proxy-trap
-
-      const co = $h_once.co(77);
-      $h_once.default(42);
-      const xx = $h_once.xx(33);
-    }
-  })`
+    const co = $h_once.co(77);
+    $h_once.default(42);
+    const xx = $h_once.xx(33);
+  }})`
 });
 
 //---------
@@ -146,14 +170,12 @@ export const v2 = 'v2';
   liveExportEntries: [],
   fixedExports: ['v', 'v2'],
 
-  functorSource: `(${
-    function($h_import, $h_once, $h_live) {
-      $h_import([]);
+  functorSource: `(${function($h_import, $h_once, $h_live) {
+    $h_import([]);
 
-      const v = $h_once.v('v');
-      const v2 = $h_once.vv('v2');
-    }
-  })`
+    const v = $h_once.v('v');
+    const v2 = $h_once.vv('v2');
+  }})`
 });
 
 const mod2ModuleStaticRecord = harden({
@@ -165,14 +187,12 @@ x = 'xChanged';
   liveExportEntries: [['x', ['x']]],
   fixedExports: [],
 
-  functorSource: `(${
-    function($h_import, $h_once, $h_live) {
-      $h_import([]);
+  functorSource: `(${function($h_import, $h_once, $h_live) {
+    $h_import([]);
 
-      $h_live.x('x');
-      x = 'xChanged';
-    }
-  })`
+    $h_live.x('x');
+    x = 'xChanged';
+  }})`
 });
 
 const mod3ModuleStaticRecord = harden({
@@ -180,11 +200,9 @@ const mod3ModuleStaticRecord = harden({
   importEntries: [],
   liveExportEntries: [],
   fixedExports: [],
-  functorSource: `(${
-    function($h_import, $h_once, $h_live) {
-      $h_import([]);
-    }
-  })`
+  functorSource: `(${function($h_import, $h_once, $h_live) {
+    $h_import([]);
+  }})`
 });
 
 const fooModuleStaticRecord = harden({
@@ -196,17 +214,14 @@ g = 'gChanged';
   importEntries: [],
   liveExportEntries: [['g', ['g']]],
   fixedExports: ['f'],
-  functorSource: `(${
-    function($h_import, $h_once, $h_live) {
-      $h_import([]);
+  functorSource: `(${function($h_import, $h_once, $h_live) {
+    $h_import([]);
 
-      const f = $h_once.f('f');
-      $h_live.g('g');
-      g = 'gChanged';
-    }
-  })`
+    const f = $h_once.f('f');
+    $h_live.g('g');
+    g = 'gChanged';
+  }})`
 });
-
 
 //---------
 
@@ -219,10 +234,12 @@ g = 'gChanged';
 //   notifierNS: { _importName_: notify(update(newValue))},
 //   initialize()
 // }
-function makeModuleInstance(moduleStaticRecord,
-                            importInstanceMap,
-                            evaluate,
-                            preEndowmentNS) {
+function makeModuleInstance(
+  moduleStaticRecord,
+  importInstanceMap,
+  evaluate,
+  preEndowmentNS
+) {
   // {_exportName_: getter} module namespace object
   const moduleNS = create(null);
 
@@ -242,12 +259,11 @@ function makeModuleInstance(moduleStaticRecord,
   // be notified when this binding is initialized or updated.
   const notifierNS = create(null);
 
-
   for (const fixedExportName of moduleStaticRecord.fixedExports) {
     // fixed binding state
     let value = undefined;
     let tdz = true;
-    let optUpdaters = [];  // optUpdaters === null iff tdz === false
+    let optUpdaters = []; // optUpdaters === null iff tdz === false
 
     // tdz sensitive getter
     function get() {
@@ -269,7 +285,9 @@ function makeModuleInstance(moduleStaticRecord,
       const updaters = optUpdaters;
       optUpdaters = null;
       tdz = false;
-      for (const updateFN of updaters) { updateFN(initValue); }
+      for (const updateFN of updaters) {
+        updateFN(initValue);
+      }
       return initValue;
     }
 
@@ -321,7 +339,9 @@ function makeModuleInstance(moduleStaticRecord,
     function update(newValue) {
       value = newValue;
       tdz = false;
-      for (const updateFN of updaters) { updateFN(newValue); }
+      for (const updateFN of updaters) {
+        updateFN(newValue);
+      }
     }
 
     // tdz sensitive setter
@@ -331,7 +351,9 @@ function makeModuleInstance(moduleStaticRecord,
         throw new ReferenceError(`binding ${qname} not yet initialized`);
       }
       value = newValue;
-      for (const updateFN of updaters) { updateFN(newValue); }
+      for (const updateFN of updaters) {
+        updateFN(newValue);
+      }
     }
 
     // Always register the update function.
@@ -379,7 +401,7 @@ function makeModuleInstance(moduleStaticRecord,
     // moduleStaticRecord.importEntries.
     for (const [specifier, updateEntries] of importUpdateEntries) {
       const instance = importInstanceMap.get(specifier);
-      instance.initialize();  // bottom up cycle tolerant
+      instance.initialize(); // bottom up cycle tolerant
       const notifiers = instance.notifierNS;
       for (const [importName, updaters] of updateEntries) {
         const notify = notifiers[importName];
@@ -395,7 +417,8 @@ function makeModuleInstance(moduleStaticRecord,
     // TODO should check that preEndowments has no $h_stuff names.
     // Neither is a security hole since trappers replace conflicting
     // preEndowments
-    ...getProps(preEndowmentNS), ...getProps(trapperNS)
+    ...getProps(preEndowmentNS),
+    ...getProps(trapperNS)
   });
 
   let optFunctor = evaluate(moduleStaticRecord.functorSource, endowmentNS);
@@ -418,7 +441,6 @@ function makeModuleInstance(moduleStaticRecord,
   });
 }
 
-
 //---------
 
 // staticModuleMap = Map[moduleStaticRecord,
@@ -430,18 +452,23 @@ function makeModuleInstance(moduleStaticRecord,
 // whose exports satisfy the imports of that the key module associates
 // with specifierName.
 
-const barStaticModuleMap = harden(makeMap([
-  [barModuleStaticRecord, [
-    ['mod1', mod1ModuleStaticRecord],
-    ['mod2', mod2ModuleStaticRecord],
-    ['mod3', mod3ModuleStaticRecord],
-    ['foo', fooModuleStaticRecord]
-  ]],
-  [mod1ModuleStaticRecord, []],
-  [mod2ModuleStaticRecord, []],
-  [mod3ModuleStaticRecord, []],
-  [fooModuleStaticRecord, []]  
-]));
+const barStaticModuleMap = harden(
+  makeMap([
+    [
+      barModuleStaticRecord,
+      [
+        ['mod1', mod1ModuleStaticRecord],
+        ['mod2', mod2ModuleStaticRecord],
+        ['mod3', mod3ModuleStaticRecord],
+        ['foo', fooModuleStaticRecord]
+      ]
+    ],
+    [mod1ModuleStaticRecord, []],
+    [mod2ModuleStaticRecord, []],
+    [mod3ModuleStaticRecord, []],
+    [fooModuleStaticRecord, []]
+  ])
+);
 
 function validateStaticModuleMap(staticModuleMap) {
   for (const [keyModule, exportEntries] of staticModuleMap) {
@@ -458,10 +485,11 @@ function validateStaticModuleMap(staticModuleMap) {
       }
       for (const importName of importNames) {
         if (!exportSet.has(importName)) {
-        const qsname = JSON.stringify(specifierName);
-        const qiname = JSON.stringify(importName);
+          const qsname = JSON.stringify(specifierName);
+          const qiname = JSON.stringify(importName);
           throw new TypeError(
-            `Link error: Expected ${qsname} to export ${qiname}`);
+            `Link error: Expected ${qsname} to export ${qiname}`
+          );
         }
       }
     }
@@ -476,29 +504,35 @@ function validateStaticModuleMap(staticModuleMap) {
 // instance is linked when its importInstanceMap is populated with
 // linked module instances whose exports satify this module's imports.
 
-function makeLinkedInstance(staticModuleMap,
-                            specifier,
-                            evaluate,
-                            preEndowments = {},
-                            registry = makeMap()) {
+function makeLinkedInstance(
+  staticModuleMap,
+  specifier,
+  evaluate,
+  preEndowments = {},
+  registry = makeMap()
+) {
   let linkedInstance = registry.get(specifier);
   if (linkedInstance) {
     return linkedInstance;
   }
 
   const linkedImportNS = makeMap();
-  linkedInstance = makeModuleInstance(staticModuleMap.get(specifier),
-                                      linkedImportNS,
-                                      evaluate,
-                                      preEndowments);
+  linkedInstance = makeModuleInstance(
+    staticModuleMap.get(specifier),
+    linkedImportNS,
+    evaluate,
+    preEndowments
+  );
   registry.set(specifier, linkedInstance);
 
   for (const [modName, _] of entries(staticModuleMap.imports)) {
-    const importedInstance = makeLinkedInstance(staticModuleMap,
-                                                modName,
-                                                evaluate,
-                                                preEndowments,
-                                                registry);
+    const importedInstance = makeLinkedInstance(
+      staticModuleMap,
+      modName,
+      evaluate,
+      preEndowments,
+      registry
+    );
     linkedImportNS.set(modName, importedInstance);
   }
 
@@ -506,9 +540,7 @@ function makeLinkedInstance(staticModuleMap,
 }
 
 function testBar(evaluate) {
-  const barInstance = makeLinkedInstance(staticModuleMap,
-                                         'bar',
-                                         evaluate);
+  const barInstance = makeLinkedInstance(staticModuleMap, 'bar', evaluate);
   barInstance.initialize();
   return barInstance;
 }
