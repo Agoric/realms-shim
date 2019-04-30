@@ -225,6 +225,24 @@ g = 'gChanged';
 
 //---------
 
+// By providing this, the rest of this module does not need to cope
+// with preEndowments. Rather, clients wishing to pass in
+// preEndowments should just curry it into the evaluate function they
+// pass us.
+function currySomeEndowments(preEvaluate, preEndowmentNS) {
+  return function evaluate(src, endowments) {
+    // TODO should check for collisions.
+    // TODO should check that preEndowments has no $h_stuff names.
+    // Neither is a security hole since trappers replace conflicting
+    // preEndowments
+    const allEndowmentNS = Object.create(null, {
+      ...getProps(preEndowmentNS),
+      ...getProps(endowments)
+    });
+    return preEvaluate(src, allEndowmentNS);
+  };
+}
+
 // importInstanceMap = Map[specifier, ModuleInstance]
 // evaluate(string, endowmentNS) -> result
 //
@@ -234,17 +252,12 @@ g = 'gChanged';
 //   notifierNS: { _importName_: notify(update(newValue))},
 //   initialize()
 // }
-function makeModuleInstance(
-  moduleStaticRecord,
-  importInstanceMap,
-  evaluate,
-  preEndowmentNS
-) {
+function makeModuleInstance(moduleStaticRecord, importInstanceMap, evaluate) {
   // {_exportName_: getter} module namespace object
   const moduleNS = create(null);
 
   // {_localName_: accessor} added to endowments for proxy traps
-  const trapperNS = create(null);
+  const endowmentNS = create(null);
 
   // {_fixedExportName_: init(initValue) -> initValue} used by the
   // rewritten code to initialize exported fixed bindings.
@@ -373,7 +386,7 @@ function makeModuleInstance(
     });
 
     for (const localName of vars) {
-      defProp(trapperNS, localName, {
+      defProp(endowmentNS, localName, {
         get,
         set,
         enumerable: true,
@@ -411,15 +424,6 @@ function makeModuleInstance(
       }
     }
   }
-
-  const endowmentNS = create(null, {
-    // TODO should check for collisions.
-    // TODO should check that preEndowments has no $h_stuff names.
-    // Neither is a security hole since trappers replace conflicting
-    // preEndowments
-    ...getProps(preEndowmentNS),
-    ...getProps(trapperNS)
-  });
 
   let optFunctor = evaluate(moduleStaticRecord.functorSource, endowmentNS);
   function initialize() {
@@ -470,32 +474,34 @@ const barStaticModuleMap = harden(
   ])
 );
 
+function validateImportsSatisfied(specifierName, importNames, exportingModule) {
+  const exportSet = new Set(exportingModule.fixedExports);
+  for (const [name, _] of exportingModule.liveExportEntries) {
+    exportSet.add(name);
+  }
+  for (const importName of importNames) {
+    if (importName !== '*' && !exportSet.has(importName)) {
+      const qsname = JSON.stringify(specifierName);
+      const qiname = JSON.stringify(importName);
+      throw new TypeError(`Link error: Expected ${qsname} to export ${qiname}`);
+    }
+  }
+}
+
 function validateStaticModuleMap(staticModuleMap) {
-  for (const [keyModule, exportEntries] of staticModuleMap) {
+  for (const [importingModule, exportEntries] of staticModuleMap) {
     const exportMap = makeMap(exportEntries);
-    for (const [specifierName, importNames] of keyModule.importEntries) {
-      const valueModule = exportMap.get(specifierName);
-      if (!valueModule) {
+    for (const [specifierName, importNames] of importingModule.importEntries) {
+      const exportingModule = exportMap.get(specifierName);
+      if (!exportingModule) {
         const qname = JSON.stringify(specifierName);
         throw new TypeError(`Link error: No module at ${qname}`);
       }
-      if (!staticModuleMap.has(valueModule)) {
+      if (!staticModuleMap.has(exportingModule)) {
         const qname = JSON.stringify(specifierName);
         throw new TypeError(`Load error: ${qname} not in static map`);
       }
-      const exportSet = new Set(valueModule.fixedExports);
-      for (const [name, _] of valueModule.liveExportEntries) {
-        exportSet.add(name);
-      }
-      for (const importName of importNames) {
-        if (importName !== '*' && !exportSet.has(importName)) {
-          const qsname = JSON.stringify(specifierName);
-          const qiname = JSON.stringify(importName);
-          throw new TypeError(
-            `Link error: Expected ${qsname} to export ${qiname}`
-          );
-        }
-      }
+      validateImportsSatisfied(specifierName, importNames, exportingModule);
     }
   }
 }
@@ -506,45 +512,51 @@ validateStaticModuleMap(barStaticModuleMap);
 
 // Instantiation phase produces a linked module instance. A module
 // instance is linked when its importInstanceMap is populated with
-// linked module instances whose exports satify this module's imports.
+// linked module instances that instantiate the corresponding static
+// module in the staticModuleMap.
 
 function makeLinkedInstance(
+  moduleStaticRecord,
   staticModuleMap,
-  specifier,
   evaluate,
-  preEndowments = {},
+  key,
   registry = makeMap()
 ) {
-  let linkedInstance = registry.get(specifier);
+  let linkedInstance = registry.get(key);
   if (linkedInstance) {
     return linkedInstance;
   }
 
-  const linkedImportNS = makeMap();
+  const linkedInstanceMap = makeMap();
   linkedInstance = makeModuleInstance(
-    staticModuleMap.get(specifier),
-    linkedImportNS,
-    evaluate,
-    preEndowments
+    moduleStaticRecord,
+    linkedInstanceMap, // empty at this time
+    evaluate
   );
-  registry.set(specifier, linkedInstance);
+  registry.set(key, linkedInstance);
 
-  for (const [modName, _] of entries(staticModuleMap.imports)) {
-    const importedInstance = makeLinkedInstance(
+  for (const [modName, _] of entries(moduleStaticRecord.importEntries)) {
+    const exportingModuleRecord = staticModuleMap.get(modName);
+    const exportingInstance = makeLinkedInstance(
+      exportingModuleRecord,
       staticModuleMap,
-      modName,
       evaluate,
-      preEndowments,
+      exportingModuleRecord,
       registry
     );
-    linkedImportNS.set(modName, importedInstance);
+    linkedInstanceMap.set(modName, exportingInstance);
   }
 
   return linkedInstance;
 }
 
 function testBar(evaluate) {
-  const barInstance = makeLinkedInstance(staticModuleMap, 'bar', evaluate);
+  const barInstance = makeLinkedInstance(
+    barModuleStaticRecord,
+    barStaticModuleMap,
+    evaluate,
+    barModuleStaticRecord
+  );
   barInstance.initialize();
   return barInstance;
 }
