@@ -174,7 +174,7 @@ export const v2 = 'v2';
     $h_import([]);
 
     const v = $h_once.default('v');
-    const v2 = $h_once.vv('v2');
+    const v2 = $h_once.v2('v2');
   }})`
 });
 
@@ -535,8 +535,8 @@ function makeLinkedInstance(
   );
   registry.set(key, linkedInstance);
 
-  for (const [modName, _] of entries(moduleStaticRecord.importEntries)) {
-    const exportingModuleRecord = staticModuleMap.get(modName);
+  const exportingEntries = staticModuleMap.get(moduleStaticRecord);
+  for (const [modName, exportingModuleRecord] of exportingEntries) {
     const exportingInstance = makeLinkedInstance(
       exportingModuleRecord,
       staticModuleMap,
@@ -560,3 +560,10 @@ function testBar(evaluate) {
   barInstance.initialize();
   return barInstance;
 }
+
+// TODO replace all below this line with realm::evaluate
+
+const global = (1, eval)('this');
+global.mu = 'mu_';
+global.lo = 'lo_';
+testBar(eval);
