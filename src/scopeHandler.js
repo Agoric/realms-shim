@@ -26,7 +26,11 @@ const alwaysThrowHandler = new Proxy(freeze({}), {
  * - hide the unsafeGlobal which lives on the scope chain above the 'with'.
  * - ensure the Proxy invariants despite some global properties being frozen.
  */
-export function createScopeHandler(unsafeRec, safeGlobal) {
+export function createScopeHandler(
+  unsafeRec,
+  safeGlobal,
+  allowFreevarAssign = false
+) {
   const { unsafeGlobal, unsafeEval } = unsafeRec;
 
   // This flag allow us to determine if the eval() call is an done by the
@@ -90,7 +94,11 @@ export function createScopeHandler(unsafeRec, safeGlobal) {
         throw new TypeError(`do not modify endowments like ${String(prop)}`);
       }
 
-      safeGlobal[prop] = value;
+      if (prop in safeGlobal || allowFreevarAssign) {
+        safeGlobal[prop] = value;
+      } else {
+        throw new ReferenceError(`${prop} is not defined`);
+      }
 
       // Return true after successful set.
       return true;

@@ -14,8 +14,6 @@ const unsafeRecord = {
 };
 
 test('createSafeEvaluator', t => {
-  t.plan(27);
-
   // Mimic repairFunctions.
   // eslint-disable-next-line no-proto
   sinon.stub(Function.__proto__, 'constructor').callsFake(() => {
@@ -52,7 +50,9 @@ test('createSafeEvaluator', t => {
 
   t.throws(() => safeEval('foo = 6'), TypeError);
   safeEval('bar = 7');
-  safeEval('none = 8');
+  t.throws(() => safeEval('none = 8'), ReferenceError);
+  // TODO test allowFreevarAssign instead
+  safeEval('this.none = 8');
 
   t.equal(safeEval('foo'), 1);
   t.equal(safeEval('bar'), 7);
@@ -74,6 +74,7 @@ test('createSafeEvaluator', t => {
 
   // eslint-disable-next-line no-proto
   Function.__proto__.constructor.restore();
+  t.end();
 });
 
 test('createSafeEvaluatorWhichTakesEndowments', t => {

@@ -86,7 +86,7 @@ test('scope hander et', t => {
 
   const unsafeGlobal = {};
   const safeGlobal = { bar: {} };
-  const handler = createScopeHandler({ unsafeGlobal }, safeGlobal);
+  const handler = createScopeHandler({ unsafeGlobal }, safeGlobal, true);
   const endowments = { foo: {} };
   const target = Object.create(
     safeGlobal,
