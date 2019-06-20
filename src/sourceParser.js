@@ -1,7 +1,3 @@
-const parser = require('@agoric/babel-parser');
-const generate = require('@babel/generator');
-const traverse = require('@babel/traverse');
-
 // this \s *must* match all kinds of syntax-defined whitespace. If e.g.
 // U+2028 (LINE SEPARATOR) or U+2029 (PARAGRAPH SEPARATOR) is treated as
 // whitespace by the parser, but not matched by /\s/, then this would admit
@@ -13,6 +9,9 @@ const importParser = /\bimport\s*(?:\(|\/[/*])/;
 
 export function parseSource(s, options) {
   const { infixBangResolver } = Object(options);
+
+  // eslint-disable-next-line global-require
+  const parser = require('@agoric/babel-parser');
   if (infixBangResolver) {
     return parser.parse(s, {
       plugins: [['infixBang', { resolver: infixBangResolver }]]
@@ -22,6 +21,8 @@ export function parseSource(s, options) {
 }
 
 export function generateSource(s, ast) {
+  // eslint-disable-next-line global-require
+  const { default: generate } = require('@babel/generator');
   const { code } = generate(ast, {}, s);
   return code;
 }
@@ -46,6 +47,8 @@ export function rejectImportExpressions(s, ast) {
   }
 
   // We have a parse, so traverse it.
+  // eslint-disable-next-line global-require
+  const { default: traverse } = require('@babel/traverse');
   traverse(ast, {
     CallExpression(path) {
       if (path.node.callee.type === 'Import') {
