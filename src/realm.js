@@ -49,11 +49,11 @@ function setDefaultBindings(sharedGlobalDescs, safeGlobal, safeEval, safeFunctio
   });
 }
 
-function createRealmRec(unsafeRec) {
+function createRealmRec(unsafeRec, options) {
   const { sharedGlobalDescs, unsafeGlobal } = unsafeRec;
 
   const safeGlobal = create(unsafeGlobal.Object.prototype);
-  const safeEvaluatorFactory = createSafeEvaluatorFactory(unsafeRec, safeGlobal);
+  const safeEvaluatorFactory = createSafeEvaluatorFactory(unsafeRec, safeGlobal, options);
   const safeEval = createSafeEvaluator(safeEvaluatorFactory);
   const safeEvalWhichTakesEndowments = createSafeEvaluatorWhichTakesEndowments(
     safeEvaluatorFactory
@@ -82,7 +82,7 @@ function initRootRealm(parentUnsafeRec, self, options) {
 
   // todo: investigate attacks via Array.species
   // todo: this accepts newShims='string', but it should reject that
-  const { shims: newShims } = options;
+  const { shims: newShims, infixBangResolver } = options;
   const allShims = arrayConcat(parentUnsafeRec.allShims, newShims);
 
   // The unsafe record is created already repaired.
@@ -101,7 +101,7 @@ function initRootRealm(parentUnsafeRec, self, options) {
 
   // Creating the realmRec provides the global object, eval() and Function()
   // to the realm.
-  const realmRec = createRealmRec(unsafeRec);
+  const realmRec = createRealmRec(unsafeRec, { infixBangResolver });
 
   // Apply all shims in the new RootRealm. We don't do this for compartments.
   const { safeEvalWhichTakesEndowments } = realmRec;
@@ -117,10 +117,12 @@ function initRootRealm(parentUnsafeRec, self, options) {
  * A compartment shares the intrinsics of its root realm. Here, only a
  * realmRec is necessary to hold the global object, eval() and Function().
  */
-function initCompartment(unsafeRec, self) {
+function initCompartment(unsafeRec, self, options) {
   // note: 'self' is the instance of the Realm.
 
-  const realmRec = createRealmRec(unsafeRec);
+  options = Object(options);
+  const { infixBangResolver } = options;
+  const realmRec = createRealmRec(unsafeRec, { infixBangResolver });
 
   // The realmRec acts as a private field on the realm instance.
   registerRealmRecForRealmInstance(self, realmRec);

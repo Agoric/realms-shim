@@ -90,6 +90,7 @@ export function buildChildRealm(unsafeRec, BaseRealm) {
     static makeCompartment() {
       // Bypass the constructor.
       const r = create(Realm.prototype);
+      // TODO: get the options from the root realm
       callAndWrapError(initCompartment, unsafeRec, r);
       return r;
     }

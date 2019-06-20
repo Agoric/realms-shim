@@ -15,7 +15,7 @@ import {
 } from './commons';
 import { getOptimizableGlobals } from './optimizer';
 import { createScopeHandler } from './scopeHandler';
-import { rejectImportExpressions } from './sourceParser';
+import { generateSource, parseSource, rejectImportExpressions } from './sourceParser';
 import { assert, throwTantrum } from './utilities';
 
 function buildOptimizer(constants) {
@@ -67,7 +67,22 @@ function createScopedEvaluatorFactory(unsafeRec, constants) {
   `);
 }
 
-export function createSafeEvaluatorFactory(unsafeRec, safeGlobal) {
+function rejectOrTransform(s, options) {
+  // control this with a root realm option.
+  const { infixBangResolver } = Object(options);
+  if (!infixBangResolver) {
+    // Just reject import expressions.
+    rejectImportExpressions(s);
+    return s;
+  }
+
+  // Do a full parse and regeneration.
+  const ast = parseSource(s, { infixBangResolver });
+  rejectImportExpressions(s, ast);
+  return generateSource(s, ast);
+}
+
+export function createSafeEvaluatorFactory(unsafeRec, safeGlobal, options) {
   const { unsafeFunction } = unsafeRec;
 
   const scopeHandler = createScopeHandler(unsafeRec);
@@ -94,7 +109,7 @@ export function createSafeEvaluatorFactory(unsafeRec, safeGlobal) {
     const safeEval = {
       eval(src) {
         src = `${src}`;
-        rejectImportExpressions(src);
+        src = rejectOrTransform(src, options);
         scopeHandler.allowUnsafeEvaluatorOnce();
         let err;
         try {
