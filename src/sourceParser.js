@@ -1,6 +1,6 @@
-import { parse } from '@agoric/babel-parser';
-import generate from '@babel/generator';
-import traverse from '@babel/traverse';
+const parser = require('@agoric/babel-parser');
+const generate = require('@babel/generator');
+const traverse = require('@babel/traverse');
 
 // this \s *must* match all kinds of syntax-defined whitespace. If e.g.
 // U+2028 (LINE SEPARATOR) or U+2029 (PARAGRAPH SEPARATOR) is treated as
@@ -14,11 +14,11 @@ const importParser = /\bimport\s*(?:\(|\/[/*])/;
 export function parseSource(s, options) {
   const { infixBangResolver } = Object(options);
   if (infixBangResolver) {
-    return parse(s, {
+    return parser.parse(s, {
       plugins: [['infixBang', { resolver: infixBangResolver }]]
     });
   }
-  return parse(s);
+  return parser.parse(s);
 }
 
 export function generateSource(s, ast) {

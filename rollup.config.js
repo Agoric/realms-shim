@@ -1,6 +1,7 @@
 import path from 'path';
 import minify from 'rollup-plugin-babel-minify';
 import stripCode from 'rollup-plugin-strip-code';
+import resolve from 'rollup-plugin-node-resolve';
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -25,6 +26,7 @@ export default {
     }
   ],
   plugins: [
+    resolve(),
     stripCode({
       start_comment: 'START_TESTS_ONLY',
       end_comment: 'END_TESTS_ONLY'
