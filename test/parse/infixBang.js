@@ -43,41 +43,40 @@ test('infix bang can be enabled', t => {
     }),
     'a'
   );
-  // FIXME: Would be good to get direct and indirect eval propagating the
-  // binding for 'E'.
+  // FIXME: The rewrite needs to be powerless.
   if (false) {
-  t.equals(
-    s.evaluate(`eval('"abc"!length')`, {
-      E(obj) {
-        return `${obj}def`;
-      }
-    }),
-    6
-  );
-  t.equals(
-    s.evaluate(`eval('"abc"!length')`, {
-      E(obj) {
-        return `${obj}def`;
-      }
-    }),
-    6
-  );
-  t.equals(
-    s.evaluate(`eval('eval(\\'"abc"!length\\')')`, {
-      E(obj) {
-        return `${obj}def`;
-      }
-    }),
-    6
-  );
-  t.equals(
-    s.evaluate(`(1,eval)('(1,eval)(\\'"abc"!length\\')')`, {
-      E(obj) {
-        return `${obj}def`;
-      }
-    }),
-    6
-  );
+    t.equals(
+      s.evaluate(`eval('"abc"!length')`, {
+        E(obj) {
+          return `${obj}def`;
+        }
+      }),
+      6
+    );
+    t.equals(
+      s.evaluate(`eval('"abc"!length')`, {
+        E(obj) {
+          return `${obj}def`;
+        }
+      }),
+      6
+    );
+    t.equals(
+      s.evaluate(`eval('eval(\\'"abc"!length\\')')`, {
+        E(obj) {
+          return `${obj}def`;
+        }
+      }),
+      6
+    );
+    t.equals(
+      s.evaluate(`(1,eval)('(1,eval)(\\'"abc"!length\\')')`, {
+        E(obj) {
+          return `${obj}def`;
+        }
+      }),
+      6
+    );
   }
   t.end();
 });
