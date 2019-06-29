@@ -118,7 +118,7 @@ export function buildChildRealm(unsafeRec, BaseRealm) {
         }
       }
 
-      callAndWrapError(initRootRealm, unsafeRec, this, options);
+      callAndWrapError(initRootRealm, unsafeRec, this, options || {});
 
       if (typeof this.init !== 'function') {
         throw new TypeError('init() must be a function');
