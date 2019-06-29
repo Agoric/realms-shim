@@ -171,7 +171,7 @@ export function createSafeEvaluatorWhichTakesEndowments(safeEvaluatorFactory) {
  * A safe version of the native Function which relies on
  * the safety of evalEvaluator for confinement.
  */
-export function createFunctionEvaluator(unsafeRec, safeEval) {
+export function createFunctionEvaluator(unsafeRec, safeEval, realmGlobal) {
   const { unsafeFunction, unsafeGlobal } = unsafeRec;
 
   const safeFunction = function Function(...params) {
@@ -227,10 +227,10 @@ export function createFunctionEvaluator(unsafeRec, safeEval) {
       functionParams += '\n/*``*/';
     }
 
-    // todo: fix `this` binding in Function().
     const src = `(function(${functionParams}){\n${functionBody}\n})`;
 
-    return safeEval(src);
+    // we fix the `this` binding in Function().
+    return safeEval(src).bind(realmGlobal);
   };
 
   // Ensure that Function from any compartment in a root realm can be used
