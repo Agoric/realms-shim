@@ -13,6 +13,14 @@ import { create, defineProperties, freeze, arrayConcat } from './commons';
 // We define it in the same module and do not export it.
 const RealmRecForRealmInstance = new WeakMap();
 
+export function typeObjectAndHasRealmInternalSlot(realm) {
+  // ? If Type(O) is not Object, throw a TypeError exception.
+  // ? If O does not have an [[Realm]] internal slot, throw a TypeError exception.
+  if (typeof realm !== 'object' || !RealmRecForRealmInstance.has(realm)) {
+    throw new TypeError('Illegal invocation');
+  }
+}
+
 function getRealmRecForRealmInstance(realm) {
   // Detect non-objects.
   assert(Object(realm) === realm, 'bad object, not a Realm instance');
