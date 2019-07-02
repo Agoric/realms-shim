@@ -65,7 +65,7 @@ function createRealmRec(unsafeRec, transforms, sloppyGlobals) {
   const safeEvalWhichTakesEndowments = createSafeEvaluatorWhichTakesEndowments(
     safeEvaluatorFactory
   );
-  const safeFunction = createFunctionEvaluator(unsafeRec, safeEval);
+  const safeFunction = createFunctionEvaluator(unsafeRec, safeEval, safeGlobal);
 
   setDefaultBindings(safeGlobal, safeEval, safeFunction);
 
