@@ -2,12 +2,16 @@ import test from 'tape';
 import Realm from '../../src/realm';
 
 test('confinement evaluation strict mode', t => {
-  t.plan(2);
+  t.plan(3);
 
   const r = Realm.makeRootRealm();
 
   t.equal(r.evaluate('(function() { return this })()'), undefined);
-  t.equal(r.evaluate('(new Function("return this"))()'), undefined);
+  t.equal(r.evaluate('(new Function("return this"))()'), r.global);
+  t.equal(
+    r.evaluate('(new Function("\\"use strict\\";return this"))()'),
+    undefined
+  );
 });
 
 test('constructor this binding', t => {
