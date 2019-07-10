@@ -78,6 +78,14 @@ function createRealmRec(unsafeRec, transforms) {
   return realmRec;
 }
 
+// Initialize all the transforms for the new Realm.
+function initTransforms(r, transforms) {
+  if (!transforms) {
+    return;
+  }
+  transforms.forEach(transform => transform.init && transform.init(r));
+}
+
 /**
  * A root realm uses a fresh set of new intrinics. Here we first create
  * a new unsafe record, which inherits the shims. Then we proceed with
@@ -117,6 +125,8 @@ function initRootRealm(parentUnsafeRec, self, options) {
 
   // The realmRec acts as a private field on the realm instance.
   registerRealmRecForRealmInstance(self, realmRec);
+
+  initTransforms(self, transforms);
 }
 
 /**
@@ -130,6 +140,8 @@ function initCompartment(unsafeRec, self, options = {}) {
 
   // The realmRec acts as a private field on the realm instance.
   registerRealmRecForRealmInstance(self, realmRec);
+
+  initTransforms(self, options.transforms);
 }
 
 function getRealmGlobal(self) {
