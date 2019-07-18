@@ -96,22 +96,7 @@ export function createSafeEvaluatorFactory(unsafeRec, safeGlobal, transforms) {
     );
     endowments = endowmentState.endowments;
 
-    // todo (shim limitation): scan endowments, throw error if endowment
-    // overlaps with the const optimization (which would otherwise
-    // incorrectly shadow endowments), or if endowments includes 'eval'. Also
-    // prohibit accessor properties (to be able to consistently explain
-    // things in terms of shimming the global lexical scope).
-    // writeable-vs-nonwritable == let-vs-const, but there's no
-    // global-lexical-scope equivalent of an accessor, outside what we can
-    // explain/spec
-    const scopeTarget = create(
-      safeGlobal,
-      getOwnPropertyDescriptors(endowments)
-    );
-    const scopeProxy = new Proxy(scopeTarget, scopeHandler);
-    const scopedEvaluator = apply(scopedEvaluatorFactory, safeGlobal, [
-      scopeProxy
-    ]);
+    let scopedEvaluator;
 
     // We use the the concise method syntax to create an eval without a
     // [[Construct]] behavior (such that the invocation "new eval()" throws
@@ -154,6 +139,27 @@ export function createSafeEvaluatorFactory(unsafeRec, safeGlobal, transforms) {
     // Ensure that eval from any compartment in a root realm is an instance
     // of Function in any compartment of the same root realm.
     setPrototypeOf(safeEval, unsafeFunction.prototype);
+
+    // todo (shim limitation): scan endowments, throw error if endowment
+    // overlaps with the const optimization (which would otherwise
+    // incorrectly shadow endowments), or if endowments includes 'eval'. Also
+    // prohibit accessor properties (to be able to consistently explain
+    // things in terms of shimming the global lexical scope).
+    // writeable-vs-nonwritable == let-vs-const, but there's no
+    // global-lexical-scope equivalent of an accessor, outside what we can
+    // explain/spec
+    const scopeTarget = create(safeGlobal, {
+      ...getOwnPropertyDescriptors(endowments),
+      eval: {
+        // We need this on the scopeTarget to permit indirect eval.
+        value: safeEval,
+        writable: false,
+        enumerable: false,
+        configurable: true
+      }
+    });
+    const scopeProxy = new Proxy(scopeTarget, scopeHandler);
+    scopedEvaluator = apply(scopedEvaluatorFactory, safeGlobal, [scopeProxy]);
 
     assert(getPrototypeOf(safeEval).constructor !== Function, 'hide Function');
     assert(
