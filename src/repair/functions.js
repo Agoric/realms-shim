@@ -16,7 +16,6 @@
  * a copy has been made, and funtions can only be created by syntax (using eval)
  * or by invoking a previously saved reference to the originals.
  */
-
 // todo: this file should be moved out to a separate repo and npm module.
 const globalEval = eval;
 export function repairFunctions() {
@@ -46,11 +45,21 @@ export function repairFunctions() {
       throw e;
     }
     const FunctionPrototype = getPrototypeOf(FunctionInstance);
+    const oldFunctionConstructor = FunctionPrototype.constructor;
 
+    function isRunningInRealms() {
+      const e = new Error().stack;
+      if (!e) return true;
+      return e.indexOf('eval') !== -1;
+    }
     // Prevents the evaluation of source when calling constructor on the
     // prototype of functions.
     const TamedFunction = function() {
-      throw new TypeError('Not available');
+      if (isRunningInRealms()) {
+        throw new TypeError('Not available');
+      } else {
+        return oldFunctionConstructor.apply(this, arguments);
+      }
     };
     defineProperties(TamedFunction, { name: { value: name } });
 
