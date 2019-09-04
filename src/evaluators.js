@@ -87,11 +87,12 @@ export function createSafeEvaluatorFactory(
     const localTransforms = options.transforms || [];
     const realmTransforms = transforms || [];
 
-    const mandatoryTransforms = [rejectDangerousSourcesTransform];
+    const defaultTransforms =
+      realmTransforms.length > 0 ? [] : [rejectDangerousSourcesTransform];
     const allTransforms = [
       ...localTransforms,
       ...realmTransforms,
-      ...mandatoryTransforms
+      ...defaultTransforms
     ];
 
     // We use the the concise method syntax to create an eval without a

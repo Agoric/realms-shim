@@ -28,6 +28,14 @@ function rejectHtmlComments(s) {
   }
 }
 
+// Export a rewriter transform.
+export const rejectHtmlCommentsTransform = {
+  rewrite(rs) {
+    rejectHtmlComments(rs.src);
+    return rs;
+  }
+};
+
 // The proposed dynamic import expression is the only syntax currently
 // proposed, that can appear in non-module JavaScript code, that
 // enables direct access to the outside world that cannot be
@@ -62,6 +70,14 @@ function rejectImportExpressions(s) {
   }
 }
 
+// Export a rewriter transform.
+export const rejectImportExpressionsTransform = {
+  rewrite(rs) {
+    rejectImportExpressions(rs.src);
+    return rs;
+  }
+};
+
 // The shim cannot correctly emulate a direct eval as explained at
 // https://github.com/Agoric/realms-shim/issues/12
 // Without rejecting apparent direct eval syntax, we would
@@ -90,6 +106,15 @@ function rejectSomeDirectEvalExpressions(s) {
     );
   }
 }
+
+// Export a rewriter transform.
+export const rejectSomeDirectEvalExpressionsTransform = {
+  rewrite(rs) {
+    rejectSomeDirectEvalExpressions(rs.src);
+    return rs;
+  }
+};
+
 
 export function rejectDangerousSources(s) {
   rejectHtmlComments(s);
