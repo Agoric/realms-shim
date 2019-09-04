@@ -1,7 +1,7 @@
 /* global Realm */
 /* eslint-disable no-self-compare, no-console */
 
-const r = Realm.makeRootRealm();
+const r = Realm.default.makeRootRealm();
 
 document.getElementById('run').addEventListener('click', () => {
   const sourceText = document.getElementById('sourceText').value;

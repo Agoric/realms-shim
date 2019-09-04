@@ -1,6 +1,6 @@
 import test from 'tape';
 import Realm from '../../src/realm';
-import { rejectDangerousSources } from '../../src/sourceParser';
+import { rejectSomeDirectEvalExpressions } from '../../src/sourceParser';
 
 const safe = `const a = 1`;
 
@@ -40,31 +40,47 @@ eval('a')
 eval('b')`;
 
 test('no-eval-expression regexp', t => {
-  t.equal(rejectDangerousSources(safe), undefined, 'safe');
-  t.equal(rejectDangerousSources(safe2), undefined, 'safe2');
-  t.equal(rejectDangerousSources(safe3), undefined, 'safe3');
-  t.equal(rejectDangerousSources(bogus), undefined, 'bogus');
-  t.throws(() => rejectDangerousSources(obvious), SyntaxError, 'obvious');
-  t.throws(() => rejectDangerousSources(whitespace), SyntaxError, 'whitespace');
-  t.throws(() => rejectDangerousSources(comment), SyntaxError, 'comment');
+  t.equal(rejectSomeDirectEvalExpressions(safe), undefined, 'safe');
+  t.equal(rejectSomeDirectEvalExpressions(safe2), undefined, 'safe2');
+  t.equal(rejectSomeDirectEvalExpressions(safe3), undefined, 'safe3');
+  t.equal(rejectSomeDirectEvalExpressions(bogus), undefined, 'bogus');
   t.throws(
-    () => rejectDangerousSources(doubleSlashComment),
+    () => rejectSomeDirectEvalExpressions(obvious),
+    SyntaxError,
+    'obvious'
+  );
+  t.throws(
+    () => rejectSomeDirectEvalExpressions(whitespace),
+    SyntaxError,
+    'whitespace'
+  );
+  t.throws(
+    () => rejectSomeDirectEvalExpressions(comment),
+    SyntaxError,
+    'comment'
+  );
+  t.throws(
+    () => rejectSomeDirectEvalExpressions(doubleSlashComment),
     SyntaxError,
     'doubleSlashComment'
   );
   t.throws(
-    () => rejectDangerousSources(htmlOpenComment),
+    () => rejectSomeDirectEvalExpressions(htmlOpenComment),
     SyntaxError,
     'htmlOpenComment'
   );
   t.throws(
-    () => rejectDangerousSources(htmlCloseComment),
+    () => rejectSomeDirectEvalExpressions(htmlCloseComment),
     SyntaxError,
     'htmlCloseComment'
   );
-  t.throws(() => rejectDangerousSources(newline), SyntaxError, 'newline');
   t.throws(
-    () => rejectDangerousSources(multiline),
+    () => rejectSomeDirectEvalExpressions(newline),
+    SyntaxError,
+    'newline'
+  );
+  t.throws(
+    () => rejectSomeDirectEvalExpressions(multiline),
     /SyntaxError: possible direct eval expression rejected around line 2/,
     'multiline'
   );

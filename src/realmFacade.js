@@ -3,7 +3,7 @@ import { cleanupSource } from './utilities';
 // buildChildRealm is immediately turned into a string, and this function is
 // never referenced again, because it closes over the wrong intrinsics
 
-export function buildChildRealm(unsafeRec, BaseRealm) {
+export function buildChildRealm(unsafeRec, BaseRealm, baseRealmOptions = {}) {
   const {
     initRootRealm,
     initCompartment,
@@ -27,6 +27,12 @@ export function buildChildRealm(unsafeRec, BaseRealm) {
     ['TypeError', TypeError],
     ['URIError', URIError]
   ]);
+
+  const {
+    rejectHtmlComments,
+    rejectImportExpressions,
+    rejectSomeDirectEvalExpressions
+  } = baseRealmOptions;
 
   // Like Realm.apply except that it catches anything thrown and rethrows it
   // as an Error from this realm
@@ -87,6 +93,14 @@ export function buildChildRealm(unsafeRec, BaseRealm) {
 
       // Bypass the constructor.
       const r = create(Realm.prototype);
+
+      // inherit mandatory transforms to new root realm
+      options.sourceParserFlags = {
+        rejectHtmlComments,
+        rejectImportExpressions,
+        rejectSomeDirectEvalExpressions
+      };
+
       callAndWrapError(initRootRealm, unsafeRec, r, options);
       return r;
     }
@@ -94,6 +108,14 @@ export function buildChildRealm(unsafeRec, BaseRealm) {
     static makeCompartment(options = {}) {
       // Bypass the constructor.
       const r = create(Realm.prototype);
+
+      // inherit mandatory transforms to new compartment
+      options.sourceParserFlags = {
+        rejectHtmlComments,
+        rejectImportExpressions,
+        rejectSomeDirectEvalExpressions
+      };
+
       callAndWrapError(initCompartment, unsafeRec, r, options);
       return r;
     }
@@ -144,9 +166,8 @@ const buildChildRealmString = cleanupSource(
   `'use strict'; (${buildChildRealm})`
 );
 
-export function createRealmFacade(unsafeRec, BaseRealm) {
+export function createRealmFacade(unsafeRec, BaseRealm, options = {}) {
   const { unsafeEval } = unsafeRec;
-
   // The BaseRealm is the Realm class created by
   // the shim. It's only valid for the context where
   // it was parsed.
@@ -161,5 +182,5 @@ export function createRealmFacade(unsafeRec, BaseRealm) {
   // values using the intrinsics of the realm's context.
 
   // Invoke the BaseRealm constructor with Realm as the prototype.
-  return unsafeEval(buildChildRealmString)(unsafeRec, BaseRealm);
+  return unsafeEval(buildChildRealmString)(unsafeRec, BaseRealm, options);
 }

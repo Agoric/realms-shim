@@ -1,6 +1,6 @@
 import test from 'tape';
 import Realm from '../../src/realm';
-import { rejectDangerousSources } from '../../src/sourceParser';
+import { rejectImportExpressions } from '../../src/sourceParser';
 
 function codepointIsSyntacticWhitespace(i) {
   const c = String.fromCodePoint(i);
@@ -78,30 +78,34 @@ test('no-import-expression regexp', t => {
   // 'tape -r esm ./shim/test/**/*.js') sees the 'import' statements and
   // rewrites them.
 
-  t.equal(rejectDangerousSources(safe), undefined, 'safe');
-  t.equal(rejectDangerousSources(safe2), undefined, 'safe2');
-  t.equal(rejectDangerousSources(safe3), undefined, 'safe3');
-  t.throws(() => rejectDangerousSources(obvious), SyntaxError, 'obvious');
-  t.throws(() => rejectDangerousSources(whitespace), SyntaxError, 'whitespace');
-  t.throws(() => rejectDangerousSources(comment), SyntaxError, 'comment');
+  t.equal(rejectImportExpressions(safe), undefined, 'safe');
+  t.equal(rejectImportExpressions(safe2), undefined, 'safe2');
+  t.equal(rejectImportExpressions(safe3), undefined, 'safe3');
+  t.throws(() => rejectImportExpressions(obvious), SyntaxError, 'obvious');
   t.throws(
-    () => rejectDangerousSources(doubleSlashComment),
+    () => rejectImportExpressions(whitespace),
+    SyntaxError,
+    'whitespace'
+  );
+  t.throws(() => rejectImportExpressions(comment), SyntaxError, 'comment');
+  t.throws(
+    () => rejectImportExpressions(doubleSlashComment),
     SyntaxError,
     'doubleSlashComment'
   );
   t.throws(
-    () => rejectDangerousSources(htmlOpenComment),
+    () => rejectImportExpressions(htmlOpenComment),
     SyntaxError,
     'htmlOpenComment'
   );
   t.throws(
-    () => rejectDangerousSources(htmlCloseComment),
+    () => rejectImportExpressions(htmlCloseComment),
     SyntaxError,
     'htmlCloseComment'
   );
-  t.throws(() => rejectDangerousSources(newline), SyntaxError, 'newline');
+  t.throws(() => rejectImportExpressions(newline), SyntaxError, 'newline');
   t.throws(
-    () => rejectDangerousSources(multiline),
+    () => rejectImportExpressions(multiline),
     /SyntaxError: possible import expression rejected around line 2/,
     'multiline'
   );

@@ -15,7 +15,11 @@ import {
 } from './commons';
 import { getOptimizableGlobals } from './optimizer';
 import { createScopeHandler } from './scopeHandler';
-import { rejectDangerousSourcesTransform } from './sourceParser';
+import {
+  rejectImportExpressionsTransform,
+  rejectHtmlCommentsTransform,
+  rejectSomeDirectEvalExpressionsTransform
+} from './sourceParser';
 import { assert, throwTantrum } from './utilities';
 
 function buildOptimizer(constants) {
@@ -72,7 +76,8 @@ export function createSafeEvaluatorFactory(
   unsafeRec,
   safeGlobal,
   transforms,
-  sloppyGlobals
+  sloppyGlobals,
+  sourceParserFlags = {}
 ) {
   const { unsafeFunction } = unsafeRec;
 
@@ -82,11 +87,23 @@ export function createSafeEvaluatorFactory(
     constants
   );
 
+  const mandatoryTransforms = [];
+
+  if (sourceParserFlags.rejectHtmlComments !== false)
+    mandatoryTransforms.push(rejectHtmlCommentsTransform);
+
+  if (sourceParserFlags.rejectImportExpressions !== false) {
+    mandatoryTransforms.push(rejectImportExpressionsTransform);
+  }
+
+  if (sourceParserFlags.rejectSomeDirectEvalExpressions !== false) {
+    mandatoryTransforms.push(rejectSomeDirectEvalExpressionsTransform);
+  }
+
   function factory(endowments = {}, options = {}) {
     const localTransforms = options.transforms || [];
     const realmTransforms = transforms || [];
 
-    const mandatoryTransforms = [rejectDangerousSourcesTransform];
     const allTransforms = [
       ...localTransforms,
       ...realmTransforms,

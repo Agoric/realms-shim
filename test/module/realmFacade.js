@@ -168,7 +168,13 @@ test('buildChildRealm - Realm.makeCompartment', t => {
   t.equals(args.length, 3);
   t.equals(args[0], unsafeRec);
   t.ok(args[1] instanceof Realm);
-  t.deepEqual(args[2], {});
+  t.deepEqual(args[2], {
+    sourceParserFlags: {
+      rejectHtmlComments: undefined,
+      rejectImportExpressions: undefined,
+      rejectSomeDirectEvalExpressions: undefined
+    }
+  });
 
   BaseRealm.initCompartment.restore();
 });

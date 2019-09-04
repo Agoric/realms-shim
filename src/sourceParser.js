@@ -18,7 +18,7 @@
 // rejection by the overly eager rejectDangerousSources.
 const htmlCommentPattern = new RegExp(`(?:${'<'}!--|--${'>'})`);
 
-function rejectHtmlComments(s) {
+export function rejectHtmlComments(s) {
   const index = s.search(htmlCommentPattern);
   if (index !== -1) {
     const linenum = s.slice(0, index).split('\n').length; // more or less
@@ -27,6 +27,14 @@ function rejectHtmlComments(s) {
     );
   }
 }
+
+// Export a rewriter transform.
+export const rejectHtmlCommentsTransform = {
+  rewrite(rs) {
+    rejectHtmlComments(rs.src);
+    return rs;
+  }
+};
 
 // The proposed dynamic import expression is the only syntax currently
 // proposed, that can appear in non-module JavaScript code, that
@@ -50,9 +58,9 @@ function rejectHtmlComments(s) {
 // something like that from something like importnotreally('power.js') which
 // is perfectly safe.
 
-const importPattern = /\bimport\s*(?:\(|\/[/*])/;
+const importPattern = /\bimport\s*(?:\(|\/[/*]|<!--|-->)/;
 
-function rejectImportExpressions(s) {
+export function rejectImportExpressions(s) {
   const index = s.search(importPattern);
   if (index !== -1) {
     const linenum = s.slice(0, index).split('\n').length; // more or less
@@ -61,6 +69,14 @@ function rejectImportExpressions(s) {
     );
   }
 }
+
+// Export a rewriter transform.
+export const rejectImportExpressionsTransform = {
+  rewrite(rs) {
+    rejectImportExpressions(rs.src);
+    return rs;
+  }
+};
 
 // The shim cannot correctly emulate a direct eval as explained at
 // https://github.com/Agoric/realms-shim/issues/12
@@ -79,9 +95,9 @@ function rejectImportExpressions(s) {
 // occurrences, not malicious one. In particular, `(eval)(...)` is
 // direct eval syntax that would not be caught by the following regexp.
 
-const someDirectEvalPattern = /\beval\s*(?:\(|\/[/*])/;
+const someDirectEvalPattern = /\beval\s*(?:\(|\/[/*]|<!--|-->)/;
 
-function rejectSomeDirectEvalExpressions(s) {
+export function rejectSomeDirectEvalExpressions(s) {
   const index = s.search(someDirectEvalPattern);
   if (index !== -1) {
     const linenum = s.slice(0, index).split('\n').length; // more or less
@@ -91,16 +107,10 @@ function rejectSomeDirectEvalExpressions(s) {
   }
 }
 
-export function rejectDangerousSources(s) {
-  rejectHtmlComments(s);
-  rejectImportExpressions(s);
-  rejectSomeDirectEvalExpressions(s);
-}
-
 // Export a rewriter transform.
-export const rejectDangerousSourcesTransform = {
+export const rejectSomeDirectEvalExpressionsTransform = {
   rewrite(rs) {
-    rejectDangerousSources(rs.src);
+    rejectSomeDirectEvalExpressions(rs.src);
     return rs;
   }
 };

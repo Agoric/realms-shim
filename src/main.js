@@ -1,1 +1,1 @@
-export { default } from './realm';
+export { default, makeRealmClass } from './realm';

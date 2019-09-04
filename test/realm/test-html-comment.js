@@ -1,6 +1,6 @@
 import test from 'tape';
 import Realm from '../../src/realm';
-import { rejectDangerousSources } from '../../src/sourceParser';
+import { rejectHtmlComments } from '../../src/sourceParser';
 
 // We break up the following literal strings so that an apparent html
 // comment does not appear in this file. Thus, we avoid rejection by
@@ -14,13 +14,13 @@ const htmlCloseComment = `const a = foo --${'>'} hah
 
 test('no-html-comment-expression regexp', t => {
   t.throws(
-    () => rejectDangerousSources(htmlOpenComment),
+    () => rejectHtmlComments(htmlOpenComment),
     SyntaxError,
     'htmlOpenComment'
   );
 
   t.throws(
-    () => rejectDangerousSources(htmlCloseComment),
+    () => rejectHtmlComments(htmlCloseComment),
     SyntaxError,
     'htmlCloseComment'
   );

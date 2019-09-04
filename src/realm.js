@@ -50,7 +50,12 @@ function setDefaultBindings(safeGlobal, safeEval, safeFunction) {
   });
 }
 
-function createRealmRec(unsafeRec, transforms, sloppyGlobals) {
+function createRealmRec(
+  unsafeRec,
+  transforms,
+  sloppyGlobals,
+  sourceParserFlags
+) {
   const { sharedGlobalDescs, unsafeGlobal } = unsafeRec;
 
   const safeGlobal = create(unsafeGlobal.Object.prototype, sharedGlobalDescs);
@@ -59,7 +64,8 @@ function createRealmRec(unsafeRec, transforms, sloppyGlobals) {
     unsafeRec,
     safeGlobal,
     transforms,
-    sloppyGlobals
+    sloppyGlobals,
+    sourceParserFlags
   );
   const safeEval = createSafeEvaluator(safeEvaluatorFactory);
   const safeEvalWhichTakesEndowments = createSafeEvaluatorWhichTakesEndowments(
@@ -89,14 +95,19 @@ function initRootRealm(parentUnsafeRec, self, options) {
 
   // todo: investigate attacks via Array.species
   // todo: this accepts newShims='string', but it should reject that
-  const { shims: newShims, transforms, sloppyGlobals } = options;
+  const {
+    shims: newShims,
+    transforms,
+    sloppyGlobals,
+    sourceParserFlags
+  } = options;
   const allShims = arrayConcat(parentUnsafeRec.allShims, newShims);
 
   // The unsafe record is created already repaired.
   const unsafeRec = createNewUnsafeRec(allShims);
 
   // eslint-disable-next-line no-use-before-define
-  const Realm = createRealmFacade(unsafeRec, BaseRealm);
+  const Realm = createRealmFacade(unsafeRec, BaseRealm, sourceParserFlags);
 
   // Add a Realm descriptor to sharedGlobalDescs, so it can be defined onto the
   // safeGlobal like the rest of the globals.
@@ -108,7 +119,12 @@ function initRootRealm(parentUnsafeRec, self, options) {
 
   // Creating the realmRec provides the global object, eval() and Function()
   // to the realm.
-  const realmRec = createRealmRec(unsafeRec, transforms, sloppyGlobals);
+  const realmRec = createRealmRec(
+    unsafeRec,
+    transforms,
+    sloppyGlobals,
+    sourceParserFlags
+  );
 
   // Apply all shims in the new RootRealm. We don't do this for compartments.
   const { safeEvalWhichTakesEndowments } = realmRec;
@@ -127,8 +143,13 @@ function initRootRealm(parentUnsafeRec, self, options) {
 function initCompartment(unsafeRec, self, options = {}) {
   // note: 'self' is the instance of the Realm.
 
-  const { transforms, sloppyGlobals } = options;
-  const realmRec = createRealmRec(unsafeRec, transforms, sloppyGlobals);
+  const { transforms, sloppyGlobals, sourceParserFlags } = options;
+  const realmRec = createRealmRec(
+    unsafeRec,
+    transforms,
+    sloppyGlobals,
+    sourceParserFlags
+  );
 
   // The realmRec acts as a private field on the realm instance.
   registerRealmRecForRealmInstance(self, realmRec);
@@ -163,6 +184,9 @@ const currentUnsafeRec = createCurrentUnsafeRec();
  * and is part of the shim. There is no need to facade this class via evaluation
  * because both share the same intrinsics.
  */
-const Realm = buildChildRealm(currentUnsafeRec, BaseRealm);
+export default buildChildRealm(currentUnsafeRec, BaseRealm);
 
-export default Realm;
+// factory utily for creating custom shims;
+export const makeRealmClass = options => {
+  return createRealmFacade(currentUnsafeRec, BaseRealm, options);
+};
