@@ -15,7 +15,11 @@ import {
 } from './commons';
 import { getOptimizableGlobals } from './optimizer';
 import { createScopeHandler } from './scopeHandler';
-import { rejectDangerousSourcesTransform } from './sourceParser';
+import {
+  rejectImportExpressionsTransform,
+  rejectHtmlCommentsTransform,
+  rejectSomeDirectEvalExpressionsTransform
+} from './sourceParser';
 import { assert, throwTantrum } from './utilities';
 
 function buildOptimizer(constants) {
@@ -87,12 +91,24 @@ export function createSafeEvaluatorFactory(
     const localTransforms = options.transforms || [];
     const realmTransforms = transforms || [];
 
-    const defaultTransforms =
-      realmTransforms.length > 0 ? [] : [rejectDangerousSourcesTransform];
+    const mandatoryTransforms = [
+      { rejectImportExpressions: rejectImportExpressionsTransform },
+      { rejectHtmlComments: rejectHtmlCommentsTransform },
+      {
+        rejectSomeDirectEvalExpressions: rejectSomeDirectEvalExpressionsTransform
+      }
+    ].reduce((acc, v) => {
+      const prop = Object.keys(v)[0];
+      if (options[prop] !== false) {
+        acc.push(v[prop]);
+      }
+      return acc;
+    }, []);
+
     const allTransforms = [
       ...localTransforms,
       ...realmTransforms,
-      ...defaultTransforms
+      ...mandatoryTransforms
     ];
 
     // We use the the concise method syntax to create an eval without a

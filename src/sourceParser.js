@@ -115,7 +115,6 @@ export const rejectSomeDirectEvalExpressionsTransform = {
   }
 };
 
-
 export function rejectDangerousSources(s) {
   rejectHtmlComments(s);
   rejectImportExpressions(s);
