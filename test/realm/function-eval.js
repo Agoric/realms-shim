@@ -166,15 +166,31 @@ test('degenerate-pattern-match-argument', t => {
   t.end();
 });
 
-test('frozen-eval', t => {
+test('frozen-eval on global', t => {
   const r = Realm.makeRootRealm();
 
   const desc = Object.getOwnPropertyDescriptor(r.global, 'eval');
+
   desc.writable = false;
   desc.configurable = false;
   Object.defineProperty(r.global, 'eval', desc);
 
   t.equal(r.evaluate('(0,eval)(1)'), 1);
+
+  t.end();
+});
+
+test('frozen-eval on endowments', t => {
+  const r = Realm.makeRootRealm();
+
+  const desc = Object.getOwnPropertyDescriptor(r.global, 'eval');
+
+  desc.writable = false;
+  desc.configurable = false;
+  const endowments = {};
+  Object.defineProperty(endowments, 'eval', desc);
+
+  t.equal(r.evaluate('(0,eval)(1)', endowments), 1);
 
   t.end();
 });

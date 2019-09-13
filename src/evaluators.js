@@ -5,9 +5,7 @@ import {
   apply,
   arrayJoin,
   arrayPop,
-  create,
   defineProperties,
-  getOwnPropertyDescriptors,
   getPrototypeOf,
   regexpTest,
   setPrototypeOf,
@@ -76,7 +74,6 @@ export function createSafeEvaluatorFactory(
 ) {
   const { unsafeFunction } = unsafeRec;
 
-  const scopeHandler = createScopeHandler(unsafeRec, safeGlobal, sloppyGlobals);
   const constants = getOptimizableGlobals(safeGlobal);
   const scopedEvaluatorFactory = createScopedEvaluatorFactory(
     unsafeRec,
@@ -94,6 +91,25 @@ export function createSafeEvaluatorFactory(
       ...mandatoryTransforms
     ];
 
+    // todo (shim limitation): scan endowments, throw error if endowment
+    // overlaps with the const optimization (which would otherwise
+    // incorrectly shadow endowments), or if endowments includes 'eval'. Also
+    // prohibit accessor properties (to be able to consistently explain
+    // things in terms of shimming the global lexical scope).
+    // writeable-vs-nonwritable == let-vs-const, but there's no
+    // global-lexical-scope equivalent of an accessor, outside what we can
+    // explain/spec
+    const scopeHandler = createScopeHandler(
+      unsafeRec,
+      safeGlobal,
+      endowments,
+      sloppyGlobals
+    );
+    const scopeProxy = new Proxy({}, scopeHandler);
+    const scopedEvaluator = apply(scopedEvaluatorFactory, safeGlobal, [
+      scopeProxy
+    ]);
+
     // We use the the concise method syntax to create an eval without a
     // [[Construct]] behavior (such that the invocation "new eval()" throws
     // TypeError: eval is not a constructor"), but which still accepts a
@@ -101,21 +117,13 @@ export function createSafeEvaluatorFactory(
     const safeEval = {
       eval(src) {
         src = `${src}`;
+
         // Rewrite the source, threading through rewriter state as necessary.
         const rewriterState = allTransforms.reduce(
           (rs, transform) => (transform.rewrite ? transform.rewrite(rs) : rs),
           { src, endowments }
         );
         src = rewriterState.src;
-
-        const scopeTarget = create(
-          safeGlobal,
-          getOwnPropertyDescriptors(rewriterState.endowments)
-        );
-        const scopeProxy = new Proxy(scopeTarget, scopeHandler);
-        const scopedEvaluator = apply(scopedEvaluatorFactory, safeGlobal, [
-          scopeProxy
-        ]);
 
         scopeHandler.allowUnsafeEvaluatorOnce();
         let err;

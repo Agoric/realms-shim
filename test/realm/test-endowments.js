@@ -41,3 +41,43 @@ test('endowments are mutable but not shared between calls to r.evaluate', t => {
 
   t.end();
 });
+
+test('accessors on endowments object', t => {
+  const r = Realm.makeRootRealm();
+  // fixed a bug: accessors must have the 'this' value set accordingly.
+
+  const endowments = Object.create(null, {
+    foo: {
+      get() {
+        return this.fooValue;
+      },
+      set(value) {
+        this.fooValue = value;
+      }
+    },
+    fooValue: {
+      value: 1,
+      writable: true
+    }
+  });
+
+  // initial value property is on endowments
+  t.equal(r.evaluate(`fooValue`, endowments), 1);
+  // initial value property is not on the global object/globalThis
+  t.equal(r.evaluate(`this.fooValue`, endowments), undefined);
+
+  // getter's 'this' value correspond to the endowments object
+  t.equal(r.evaluate(`foo`, endowments), 1);
+  // getter is not on the global object/globalThis
+  t.equal(r.evaluate(`this.foo`, endowments), undefined);
+
+  // cannot modify an endowment
+  t.throws(() => r.evaluate(`foo = 2`, endowments), TypeError);
+  // can modify a global even if endowment is present
+  t.equal(r.evaluate(`this.foo = 3; this.foo`, endowments), 3);
+
+  // final value
+  t.equal(r.evaluate(`fooValue`, endowments), 1);
+
+  t.end();
+});

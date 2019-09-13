@@ -1,4 +1,4 @@
-import { freeze, objectHasOwnProperty } from './commons';
+import { freeze } from './commons';
 import { throwTantrum } from './utilities';
 
 /**
@@ -26,7 +26,12 @@ const alwaysThrowHandler = new Proxy(freeze({}), {
  * - hide the unsafeGlobal which lives on the scope chain above the 'with'.
  * - ensure the Proxy invariants despite some global properties being frozen.
  */
-export function createScopeHandler(unsafeRec, safeGlobal, sloppyGlobals) {
+export function createScopeHandler(
+  unsafeRec,
+  safeGlobal,
+  endowments = {},
+  sloppyGlobals
+) {
   const { unsafeGlobal, unsafeEval } = unsafeRec;
 
   // This flag allow us to determine if the eval() call is an done by the
@@ -58,7 +63,7 @@ export function createScopeHandler(unsafeRec, safeGlobal, sloppyGlobals) {
           useUnsafeEvaluator = false;
           return unsafeEval;
         }
-        return target.eval;
+        // fall through to normal endowments/global handling.
       }
 
       // todo: shim integrity, capture Symbol.unscopables
@@ -70,9 +75,15 @@ export function createScopeHandler(unsafeRec, safeGlobal, sloppyGlobals) {
         return undefined;
       }
 
-      // Properties of the global.
-      if (prop in target) {
-        return target[prop];
+      // Check endowments first.
+      if (prop in endowments) {
+        return endowments[prop];
+      }
+
+      // Get the value from the shadow. The target itself is an empty
+      // object that is only used to prevent a froxen eval property.
+      if (prop in safeGlobal) {
+        return safeGlobal[prop];
       }
 
       // Prevent the lookup for other properties.
@@ -84,12 +95,14 @@ export function createScopeHandler(unsafeRec, safeGlobal, sloppyGlobals) {
       // todo: allow modifications when target.hasOwnProperty(prop) and it
       // is writable, assuming we've already rejected overlap (see
       // createSafeEvaluatorFactory.factory). This TypeError gets replaced with
-      // target[prop] = value
-      if (objectHasOwnProperty(target, prop)) {
+      // endowments[prop] = value
+      if (prop in endowments) {
         // todo: shim integrity: TypeError, String
         throw new TypeError(`do not modify endowments like ${String(prop)}`);
       }
 
+      // Set the value on the shadow. The target itself is an empty
+      // object that is only used to prevent a froxen eval property.
       safeGlobal[prop] = value;
 
       // Return true after successful set.
@@ -129,7 +142,12 @@ export function createScopeHandler(unsafeRec, safeGlobal, sloppyGlobals) {
       // example, in the browser, evaluating 'document = 3', will add
       // a property to safeGlobal instead of throwing a
       // ReferenceError.
-      if (prop === 'eval' || prop in target || prop in unsafeGlobal) {
+      if (
+        prop === 'eval' ||
+        prop in safeGlobal ||
+        prop in endowments ||
+        prop in unsafeGlobal
+      ) {
         return true;
       }
 

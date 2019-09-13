@@ -65,7 +65,7 @@ function rejectImportExpressions(s) {
 // The shim cannot correctly emulate a direct eval as explained at
 // https://github.com/Agoric/realms-shim/issues/12
 // Without rejecting apparent direct eval syntax, we would
-// accidentally evaluate these with an emulation of indirect eval. Tp
+// accidentally evaluate these with an emulation of indirect eval. To
 // prevent future compatibility problems, in shifting from use of the
 // shim to genuine platform support for the proposal, we should
 // instead statically reject code that seems to contain a direct eval

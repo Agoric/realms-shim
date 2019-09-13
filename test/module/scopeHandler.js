@@ -35,8 +35,9 @@ test('scope handler has', t => {
   t.plan(9);
 
   const unsafeGlobal = { foo: {} };
-  const handler = createScopeHandler({ unsafeGlobal });
-  const target = { bar: {} };
+  const safeGlobal = { bar: {} };
+  const handler = createScopeHandler({ unsafeGlobal }, safeGlobal);
+  const target = {};
 
   t.equal(handler.has(target, 'eval'), true);
   handler.allowUnsafeEvaluatorOnce();
@@ -59,25 +60,25 @@ test('scope handler get', t => {
   const unsafeGlobal = { foo: {} };
   const unsafeEval = {};
   const safeGlobal = { eval: {}, bar: {} };
-  const handler = createScopeHandler({ unsafeGlobal, unsafeEval });
-  const target = Object.create(safeGlobal);
+  const handler = createScopeHandler({ unsafeGlobal, unsafeEval }, safeGlobal);
+  const target = {};
 
   t.equal(handler.unsafeEvaluatorAllowed(), false); // initial
-  t.equal(handler.get(target, 'eval'), target.eval);
+  t.equal(handler.get(target, 'eval'), safeGlobal.eval);
 
   handler.allowUnsafeEvaluatorOnce();
   t.equal(handler.unsafeEvaluatorAllowed(), true);
   t.equal(handler.get(target, 'eval'), unsafeEval);
   t.equal(handler.unsafeEvaluatorAllowed(), false);
-  t.equal(handler.get(target, 'eval'), target.eval);
+  t.equal(handler.get(target, 'eval'), safeGlobal.eval);
   t.equal(handler.unsafeEvaluatorAllowed(), false);
-  t.equal(handler.get(target, 'eval'), target.eval); // repeat
+  t.equal(handler.get(target, 'eval'), safeGlobal.eval); // repeat
 
   t.equal(handler.get(target, Symbol.unscopables), undefined);
 
   t.equal(handler.get(target, 'arguments'), undefined);
   t.equal(handler.get(target, 'foo'), undefined);
-  t.equal(handler.get(target, 'bar'), target.bar);
+  t.equal(handler.get(target, 'bar'), safeGlobal.bar);
   t.equal(handler.get(target, 'dummy'), undefined);
 });
 
@@ -86,12 +87,9 @@ test('scope handler set', t => {
 
   const unsafeGlobal = {};
   const safeGlobal = { bar: {} };
-  const handler = createScopeHandler({ unsafeGlobal }, safeGlobal);
   const endowments = { foo: {} };
-  const target = Object.create(
-    safeGlobal,
-    Object.getOwnPropertyDescriptors(endowments)
-  );
+  const handler = createScopeHandler({ unsafeGlobal }, safeGlobal, endowments);
+  const target = {};
 
   const evil = {};
   handler.set(target, 'eval', evil);
