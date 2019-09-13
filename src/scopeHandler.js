@@ -1,4 +1,4 @@
-import { freeze } from './commons';
+import { freeze, reflectGet } from './commons';
 import { throwTantrum } from './utilities';
 
 /**
@@ -77,7 +77,9 @@ export function createScopeHandler(
 
       // Check endowments first.
       if (prop in endowments) {
-        return endowments[prop];
+        // Use the reflection API to supply the 'this' value and prevent any accessor
+        // present on the endowments object from leaking the endowments object itself.
+        return reflectGet(endowments, prop, safeGlobal);
       }
 
       // Get the value from the target. The shadow itself is an empty
@@ -95,7 +97,7 @@ export function createScopeHandler(
       // todo: allow modifications when target.hasOwnProperty(prop) and it
       // is writable, assuming we've already rejected overlap (see
       // createSafeEvaluatorFactory.factory). This TypeError gets replaced with
-      // endowments[prop] = value
+      // reflectSet(endowments, prop, value, safeGlobal);
       if (prop in endowments) {
         // todo: shim integrity: TypeError, String
         throw new TypeError(`do not modify endowments like ${String(prop)}`);

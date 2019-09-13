@@ -5,7 +5,9 @@ import {
   apply,
   arrayJoin,
   arrayPop,
+  create,
   defineProperties,
+  getOwnPropertyDescriptors,
   getPrototypeOf,
   regexpTest,
   setPrototypeOf,
@@ -80,7 +82,7 @@ export function createSafeEvaluatorFactory(
     constants
   );
 
-  function factory(endowments = {}, options = {}) {
+  function factory(optEndowments = {}, options = {}) {
     const localTransforms = options.transforms || [];
     const realmTransforms = transforms || [];
 
@@ -94,6 +96,11 @@ export function createSafeEvaluatorFactory(
     // todo (shim limitation): scan endowments, throw error if endowment
     // overlaps with the const optimization (which would otherwise
     // incorrectly shadow endowments).
+
+    // Copy the endowments descriptors onto an encapsulated object, preventing
+    // outside manipulation of the endowments object itself.
+    const endowments = create(null, getOwnPropertyDescriptors(optEndowments));
+
     const scopeHandler = createScopeHandler(
       unsafeRec,
       safeGlobal,

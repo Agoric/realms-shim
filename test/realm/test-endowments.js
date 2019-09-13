@@ -46,6 +46,8 @@ test('accessors on endowments object', t => {
   const r = Realm.makeRootRealm();
   // fixed a bug: accessors must have the 'this' value set accordingly.
 
+  r.global.fooValue = 4;
+
   const endowments = Object.create(null, {
     foo: {
       get() {
@@ -61,19 +63,20 @@ test('accessors on endowments object', t => {
     }
   });
 
-  // initial value property is on endowments
+  // initial value property from the endowments
   t.equal(r.evaluate(`fooValue`, endowments), 1);
-  // initial value property is not on the global object/globalThis
-  t.equal(r.evaluate(`this.fooValue`, endowments), undefined);
+  // initial value property from the global object/globalThis
+  t.equal(r.evaluate(`this.fooValue`, endowments), 4);
 
-  // getter's 'this' value correspond to the endowments object
-  t.equal(r.evaluate(`foo`, endowments), 1);
+  // endowments' getter 'this' value correspond to the global object
+  t.equal(r.evaluate(`foo`, endowments), 4);
   // getter is not on the global object/globalThis
   t.equal(r.evaluate(`this.foo`, endowments), undefined);
 
-  // cannot modify an endowment
+  // attempts to use the endowments' setter is prevented like
+  // any other assignments to endowments
   t.throws(() => r.evaluate(`foo = 2`, endowments), TypeError);
-  // can modify a global even if endowment is present
+  // can modify a global even there is an endowment setter to shadow it
   t.equal(r.evaluate(`this.foo = 3; this.foo`, endowments), 3);
 
   // final value

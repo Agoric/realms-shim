@@ -21,8 +21,10 @@ export const {
 
 export const {
   apply,
-  ownKeys // Reflect.ownKeys includes Symbols and unenumerables,
+  get: reflectGet,
+  ownKeys, // Reflect.ownKeys includes Symbols and unenumerables,
   // unlike Object.keys()
+  set: reflectSet
 } = Reflect;
 
 /**
