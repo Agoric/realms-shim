@@ -93,12 +93,7 @@ export function createSafeEvaluatorFactory(
 
     // todo (shim limitation): scan endowments, throw error if endowment
     // overlaps with the const optimization (which would otherwise
-    // incorrectly shadow endowments), or if endowments includes 'eval'. Also
-    // prohibit accessor properties (to be able to consistently explain
-    // things in terms of shimming the global lexical scope).
-    // writeable-vs-nonwritable == let-vs-const, but there's no
-    // global-lexical-scope equivalent of an accessor, outside what we can
-    // explain/spec
+    // incorrectly shadow endowments).
     const scopeHandler = createScopeHandler(
       unsafeRec,
       safeGlobal,

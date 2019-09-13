@@ -30,7 +30,7 @@ export function createScopeHandler(
   unsafeRec,
   safeGlobal,
   endowments = {},
-  sloppyGlobals
+  sloppyGlobals = false
 ) {
   const { unsafeGlobal, unsafeEval } = unsafeRec;
 
@@ -52,7 +52,7 @@ export function createScopeHandler(
       return useUnsafeEvaluator;
     },
 
-    get(target, prop) {
+    get(shadow, prop) {
       // Special treatment for eval. The very first lookup of 'eval' gets the
       // unsafe (real direct) eval, so it will get the lexical scope that uses
       // the 'with' context.
@@ -80,8 +80,8 @@ export function createScopeHandler(
         return endowments[prop];
       }
 
-      // Get the value from the shadow. The target itself is an empty
-      // object that is only used to prevent a froxen eval property.
+      // Get the value from the target. The shadow itself is an empty
+      // object that is only used to prevent a frozen eval property.
       if (prop in safeGlobal) {
         return safeGlobal[prop];
       }
@@ -91,7 +91,7 @@ export function createScopeHandler(
     },
 
     // eslint-disable-next-line class-methods-use-this
-    set(target, prop, value) {
+    set(shadow, prop, value) {
       // todo: allow modifications when target.hasOwnProperty(prop) and it
       // is writable, assuming we've already rejected overlap (see
       // createSafeEvaluatorFactory.factory). This TypeError gets replaced with
@@ -101,8 +101,8 @@ export function createScopeHandler(
         throw new TypeError(`do not modify endowments like ${String(prop)}`);
       }
 
-      // Set the value on the shadow. The target itself is an empty
-      // object that is only used to prevent a froxen eval property.
+      // Set the value on the target. The shadow itself is an empty
+      // object that is only used to prevent a frozen eval property.
       safeGlobal[prop] = value;
 
       // Return true after successful set.
@@ -129,7 +129,7 @@ export function createScopeHandler(
     // accept assignments to undefined globals, when it ought to throw
     // ReferenceError for such assignments)
 
-    has(target, prop) {
+    has(shadow, prop) {
       // proxies stringify 'prop', so no TOCTTOU danger here
 
       if (sloppyGlobals) {
