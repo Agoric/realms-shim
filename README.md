@@ -106,10 +106,14 @@ r.global.JSON === JSON; // true
 
 ## Bug Disclosure
 
-Please help us practice coordinated security bug disclosure. If you find a security-sensitive bug that should not be revealed publically until a fix is available, please send email to `security` at (@) `agoric.com`. To encrypt, please use my (@warner) personal GPG key [A476E2E6 11880C98 5B3C3A39 0386E81B 11CAA07A](http://www.lothar.com/warner-gpg.html) . Keybase users can also send messages to `@agoric_security`, or share code and other log files via the Keybase encrypted file system (`/keybase/private/agoric_security,$YOURNAME`). We will create a github security advisory and add you to the collaborator list.
+Please help us practice coordinated security bug disclosure, by using the
+instructions in
+[SECURITY.md](https://github.com/Agoric/realms-shim/blob/master/SECURITY.md)
+to report security-sensitive bugs privately.
 
-For non-security bugs, use the
-[regular Issues page](https://github.com/Agoric/realms-shim/issues).
+For non-security bugs, please use the [regular Issues
+page](https://github.com/Agoric/realms-shim/issues).
+
 
 [circleci-svg]: https://circleci.com/gh/Agoric/realms-shim.svg?style=svg
 [circleci-url]: https://circleci.com/gh/Agoric/realms-shim
