@@ -9,7 +9,9 @@ test('scope handler traps', t => {
 
   const handler = createScopeHandler({});
 
-  ['has', 'get', 'set'].forEach(trap => t.doesNotThrow(() => handler[trap]));
+  ['has', 'get', 'set', 'getPrototypeOf'].forEach(trap =>
+    t.doesNotThrow(() => handler[trap])
+  );
 
   [
     'apply',
@@ -17,7 +19,6 @@ test('scope handler traps', t => {
     'defineProperty',
     'delteProperty',
     'getOwnProperty',
-    'getPrototypeOf',
     'isExtensible',
     'ownKeys',
     'preventExtensions',

@@ -8,7 +8,7 @@ import { throwTantrum } from './utilities';
  */
 const alwaysThrowHandler = new Proxy(freeze({}), {
   get(target, prop) {
-    throwTantrum(`unexpected scope handler trap called: ${prop}`);
+    throwTantrum(`unexpected scope handler trap called: ${String(prop)}`);
   }
 });
 
@@ -25,6 +25,8 @@ const alwaysThrowHandler = new Proxy(freeze({}), {
  * - route all other property lookups at the safeGlobal.
  * - hide the unsafeGlobal which lives on the scope chain above the 'with'.
  * - ensure the Proxy invariants despite some global properties being frozen.
+ *
+ * @returns {ProxyHandler<any> & Record<string, any>}
  */
 export function createScopeHandler(unsafeRec, safeGlobal, sloppyGlobals) {
   const { unsafeGlobal, unsafeEval } = unsafeRec;
@@ -79,7 +81,6 @@ export function createScopeHandler(unsafeRec, safeGlobal, sloppyGlobals) {
       return undefined;
     },
 
-    // eslint-disable-next-line class-methods-use-this
     set(target, prop, value) {
       // todo: allow modifications when target.hasOwnProperty(prop) and it
       // is writable, assuming we've already rejected overlap (see
@@ -134,6 +135,13 @@ export function createScopeHandler(unsafeRec, safeGlobal, sloppyGlobals) {
       }
 
       return false;
+    },
+
+    // note: this is likely a bug of safari
+    // https://bugs.webkit.org/show_bug.cgi?id=195534
+
+    getPrototypeOf() {
+      return null;
     }
   };
 }
