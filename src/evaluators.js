@@ -253,9 +253,12 @@ export function createFunctionEvaluator(unsafeRec, safeEval, realmGlobal) {
       return fn;
     }
     // we fix the `this` binding in Function().
+    // note: In non-strict mode, if `this` is not object
+    // it will be wrapped by Object(). Like 1 becomes Object(1) which is Number(1)
+    // Should we simulate this? It seems like no one will rely on this.
     const bindThis = `(function (globalThis, f) {
   function f2() {
-    return Reflect.apply(f, this || globalThis, arguments);
+    return Reflect.apply(f, this === undefined ? globalThis : this, arguments);
   }
   f2.toString = () => f.toString();
   return f2;
