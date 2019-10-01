@@ -31,7 +31,7 @@ export function assert(condition, message) {
 export function cleanupSource(src) {
   // Restore eval which is modified by esm module.
   // (0, eval) => (0, _<something>.e)
-  src = src.replace(/\(0, _[^.]+\.e\)/g, '(0, eval)');
+  src = src.replace(/\(0,\s*_[^.]+\.e\)/g, '(0, eval)');
 
   // Restore Reflect which is modified by esm module.
   // Reflect => _<something>.e.Reflect

@@ -55,6 +55,9 @@ jobs:
       - run: &test 
           name: Test
           command: npm run shim:test
+      - run: &test_integration
+          name: Test-Integration
+          command: npm run shim:test-integration 
 
   lint_and_test_node_10:
     <<: *lint_and_test
