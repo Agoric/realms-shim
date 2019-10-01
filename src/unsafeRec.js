@@ -94,7 +94,7 @@ const repairAccessorsShim = cleanupSource(
   `"use strict"; (${repairAccessors})();`
 );
 const repairFunctionsShim = cleanupSource(
-  `"use strict"; const globalEval = eval; (${repairFunctions})();`
+  `"use strict"; (${repairFunctions})();`
 );
 
 // Create a new unsafeRec from a brand new context, with new intrinsics and a

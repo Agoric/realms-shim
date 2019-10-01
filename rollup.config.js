@@ -1,5 +1,4 @@
 import minify from 'rollup-plugin-babel-minify';
-import stripCode from 'rollup-plugin-strip-code';
 
 export default () => {
   const isProduction = process.env.NODE_ENV === 'production';
@@ -19,12 +18,7 @@ export default () => {
     }
   ];
 
-  const plugins = [
-    stripCode({
-      start_comment: 'START_TESTS_ONLY',
-      end_comment: 'END_TESTS_ONLY'
-    })
-  ];
+  const plugins = [];
 
   if (isProduction) {
     plugins.push(
@@ -45,4 +39,4 @@ export default () => {
     output,
     plugins
   };
-}
+};

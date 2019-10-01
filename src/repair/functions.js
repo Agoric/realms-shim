@@ -18,7 +18,6 @@
  */
 
 // todo: this file should be moved out to a separate repo and npm module.
-const globalEval = eval;
 export function repairFunctions() {
   const { defineProperties, getPrototypeOf, setPrototypeOf } = Object;
 
@@ -35,7 +34,7 @@ export function repairFunctions() {
     let FunctionInstance;
     try {
       // eslint-disable-next-line no-new-func
-      FunctionInstance = globalEval(declaration);
+      FunctionInstance = (0, eval)(declaration);
     } catch (e) {
       if (e instanceof SyntaxError) {
         // Prevent failure on platforms where async and/or generators
