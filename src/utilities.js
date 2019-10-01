@@ -30,7 +30,12 @@ export function assert(condition, message) {
 // Remove code modifications.
 export function cleanupSource(src) {
   // Restore eval which is modified by esm module.
-  src = src.replace(/\(0,[^)]+\)/g, '(0, eval)');
+  // (0, eval) => (0, _<something>.e)
+  src = src.replace(/\(0, _[^.]+\.e\)/g, '(0, eval)');
+
+  // Restore Reflect which is modified by esm module.
+  // Reflect => _<something>.e.Reflect
+  src = src.replace(/_[^.]+\.g\.Reflect/g, 'Reflect');
 
   // Remove code coverage which is injected by nyc module.
   src = src.replace(/cov_[^+]+\+\+[;,]/g, '');
