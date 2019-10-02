@@ -8,7 +8,8 @@ be made for the most recent branch only.
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 1.1.x   | :white_check_mark: |
+| 1.2.x   | :white_check_mark: |
+| 1.1.x   | :x:                |
 | 0.x.x   | :x:                |
 
 ## Reporting a Vulnerability
