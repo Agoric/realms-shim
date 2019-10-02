@@ -1,5 +1,7 @@
 import test from 'tape';
 import sinon from 'sinon';
+
+import { createCallAndWrapError } from '../../src/callAndWrapError';
 import {
   createSafeEvaluatorFactory,
   createSafeEvaluator,
@@ -7,10 +9,13 @@ import {
   createFunctionEvaluator
 } from '../../src/evaluators';
 
+const callAndWrapError = createCallAndWrapError(eval);
+
 const unsafeRecord = {
   unsafeGlobal: {},
   unsafeEval: eval,
-  unsafeFunction: Function
+  unsafeFunction: Function,
+  callAndWrapError
 };
 
 test('createSafeEvaluator', t => {
@@ -27,7 +32,8 @@ test('createSafeEvaluator', t => {
     bar: { value: 2, writable: true }
   });
   const safeEval = createSafeEvaluator(
-    createSafeEvaluatorFactory(unsafeRecord, safeGlobal)
+    unsafeRecord,
+    createSafeEvaluatorFactory(unsafeRecord, safeGlobal)()
   );
 
   t.equal(safeEval('foo'), 1);
@@ -77,6 +83,7 @@ test('createSafeEvaluator', t => {
 });
 
 test('createSafeEvaluatorWhichTakesEndowments - options.sloppyGlobals', t => {
+  let err;
   try {
     // Mimic repairFunctions.
     // eslint-disable-next-line no-proto
@@ -118,8 +125,9 @@ test('createSafeEvaluatorWhichTakesEndowments - options.sloppyGlobals', t => {
     t.equal(safeEval('def', { abc: 123 }), 456, 'assigned global persists');
     t.equal(safeGlobal.def, 456, 'assigned global uses our safeGlobal');
   } catch (e) {
-    t.isNot(e, e, 'unexpected exception');
+    err = e;
   } finally {
+    t.error(err);
     // eslint-disable-next-line no-proto
     Function.__proto__.constructor.restore();
     t.end();
@@ -259,10 +267,10 @@ test('createFunctionEvaluator', t => {
     foo: { value: 1 },
     bar: { value: 2, writable: true }
   });
-  const safeEval = createSafeEvaluator(
-    createSafeEvaluatorFactory(unsafeRecord, safeGlobal)
+  const safeFunction = createFunctionEvaluator(
+    unsafeRecord,
+    createSafeEvaluatorFactory(unsafeRecord, safeGlobal)()
   );
-  const safeFunction = createFunctionEvaluator(unsafeRecord, safeEval);
 
   t.equal(safeFunction('return foo')(), 1);
   t.equal(safeFunction('return bar')(), 2);
@@ -344,13 +352,14 @@ test('createSafeEvaluator - broken', t => {
   }
   unsafeFunction.prototype = Function.prototype;
 
-  const unsafeRecord = { unsafeFunction, unsafeEval: eval };
+  const unsafeRecord = { unsafeFunction, unsafeEval: eval, callAndWrapError };
   const safeGlobal = {};
 
   t.throws(() => {
     // Internally, createSafeEvaluator might use safeEval, so we wrap everything.
     const safeEval = createSafeEvaluator(
-      createSafeEvaluatorFactory(unsafeRecord, safeGlobal)
+      unsafeRecord,
+      createSafeEvaluatorFactory(unsafeRecord, safeGlobal)()
     );
     safeEval('true');
   }, /handler did not revoke useUnsafeEvaluator/);
