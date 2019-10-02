@@ -1,5 +1,25 @@
 User-visible changes in realms-shim:
 
+## Release 1.2.0 (02-Oct-2019)
+
+SECURITY UPDATE: This release fixes multiple sandbox escapes, found by GitHub
+users "XmiliaH" and Richard Gibson. All users should update to this version.
+
+* Improve safe/unsafe switch in core evaluator to prevent user-triggered
+  exceptions from leaving the evaluator in unsafe mode.
+* Catch and wrap all shim exceptions to prevent user code from catching
+  primal-realm Error objects.
+* Tame `Function` constructor better, to protect against unexpected behavior
+  of `Reflect.construct` that could reveal primal-realm objects.
+* Unwrap `...args` "spread" operator early, to protect against user code
+  modifying `Array.prototype` with `Symbol.iterator` to break confinement.
+
+Non-security fixes:
+
+* Add `getPrototypeOf` trap to the scope handler, needed for Safari. (#62)
+* Fix release bundles: rollup was mangling variable names. (#60)
+
+
 ## Release 1.1.2 (25-Sep-2019)
 
 No user-visible changes. Minor dependency updates, including "handlebars"
