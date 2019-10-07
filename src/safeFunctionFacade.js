@@ -1,4 +1,4 @@
-import { cleanupSource } from './utilities';
+import { safeStringifyFunction } from './utilities';
 
 function buildSafeFunction(unsafeRec, safeFunctionOperation) {
   const { callAndWrapError, unsafeFunction } = unsafeRec;
@@ -30,9 +30,7 @@ function buildSafeFunction(unsafeRec, safeFunctionOperation) {
 
   return safeFunction;
 }
-const buildSafeFunctionString = cleanupSource(
-  `'use strict'; (${buildSafeFunction})`
-);
+const buildSafeFunctionString = safeStringifyFunction(buildSafeFunction);
 export function createSafeFunction(unsafeRec, safeFunctionOperation) {
   const { unsafeEval } = unsafeRec;
   return unsafeEval(buildSafeFunctionString)(unsafeRec, safeFunctionOperation);

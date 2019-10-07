@@ -1,6 +1,10 @@
 import test from 'tape';
 import sinon from 'sinon';
-import { throwTantrum, assert, cleanupSource } from '../../src/utilities';
+import {
+  throwTantrum,
+  assert,
+  safeStringifyFunction
+} from '../../src/utilities';
 
 /* eslint-disable no-console */
 
@@ -64,19 +68,21 @@ test('assert', t => {
   console.error.restore();
 });
 
-test('cleanupSource', t => {
+test('safeStringifyFunction', t => {
   t.plan(3);
 
   t.equal(
-    cleanupSource(`function() { return (0, _123.e)('true'); }`),
-    `function() { return (0, eval)('true'); }`
+    safeStringifyFunction(`function() { return (0, _123\u200D.e)('true'); }`),
+    `'use strict'; (function() { return (0, eval)('true'); })`
   );
   t.equals(
-    cleanupSource(`function() { const { apply } = _123.g.Reflect; }`),
-    `function() { const { apply } = Reflect; }`
+    safeStringifyFunction(
+      `function() { const { apply } = _123\u200D.g.Reflect; }`
+    ),
+    `'use strict'; (function() { const { apply } = Reflect; })`
   );
   t.equal(
-    cleanupSource(`function() { cov_2kmyol0g2w[0]++;return true; }`),
-    'function() { return true; }'
+    safeStringifyFunction(`function() { cov_2kmyol0g2w[0]++;return true; }`),
+    `'use strict'; (function() { return true; })`
   );
 });

@@ -1,4 +1,4 @@
-import { cleanupSource } from './utilities';
+import { safeStringifyFunction } from './utilities';
 
 // buildChildRealm is immediately turned into a string, and this function is
 // never referenced again, because it closes over the wrong intrinsics
@@ -84,9 +84,7 @@ export function buildChildRealm(unsafeRec, BaseRealm) {
 // The parentheses means we don't bind the 'buildChildRealm' name inside the
 // child's namespace. this would accept an anonymous function declaration.
 // function expression (not a declaration) so it has a completion value.
-const buildChildRealmString = cleanupSource(
-  `'use strict'; (${buildChildRealm})`
-);
+const buildChildRealmString = safeStringifyFunction(buildChildRealm);
 
 export function createRealmFacade(unsafeRec, BaseRealm) {
   const { unsafeEval } = unsafeRec;

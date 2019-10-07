@@ -28,25 +28,22 @@ export function assert(condition, message) {
 }
 
 /**
- * cleanupSource()
+ * safeStringifyFunction()
  * Remove code modifications introduced by ems and nyx in
  * test mode which intefere with Function.toString().
- *
- * Becuase this change is not required at runtime, the
- * body of this function is hollowed-out during the build
- * process by rollup-plugin-strip-code. As configured in
- * in rollup.config.jj, all code between the custom tags
- * START_TESTS_ONLY and END_TESTS_ONLY, and including those
- * tags, is stripped, turning this function into a noop.
  */
-export function cleanupSource(src) {
-  // Restore eval which is modified by esm module.
-  // (0, eval) => (0, _<something>.e)
-  src = src.replace(/\(0,\s*_[^.]+\.e\)/g, '(0, eval)');
+export function safeStringifyFunction(fn) {
+  let src = `'use strict'; (${fn})`;
 
-  // Restore Reflect which is modified by esm module.
-  // Reflect => _<something>.e.Reflect
-  src = src.replace(/_[^.]+\.g\.Reflect/g, 'Reflect');
+  // esm module creates "runtime" as "_" + hex(3) + "\u200D"
+
+  // Restore eval which is modified by esm module.
+  // (0, eval) => (0, <runtime>.e)
+  src = src.replace(/\(0,\s*_[0-9a-fA-F]{3}\u200D\.e\)/g, '(0, eval)');
+
+  // Restore globals such as Reflect which are modified by esm module.
+  // Reflect => <runtime>.e.Reflect
+  src = src.replace(/_[0-9a-fA-F]{3}\u200D\.g\./g, '');
 
   // Remove code coverage which is injected by nyc module.
   src = src.replace(/cov_[^+]+\+\+[;,]/g, '');

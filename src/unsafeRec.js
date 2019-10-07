@@ -3,7 +3,7 @@ import { createCallAndWrapError } from './callAndWrapError';
 import { getSharedGlobalDescs } from './stdlib';
 import { repairAccessors } from './repair/accessors';
 import { repairFunctions } from './repair/functions';
-import { cleanupSource } from './utilities';
+import { safeStringifyFunction } from './utilities';
 import { freeze } from './commons';
 
 // A "context" is a fresh unsafe Realm as given to us by existing platforms.
@@ -97,19 +97,15 @@ function createUnsafeRec(unsafeGlobal, allShims = []) {
   });
 }
 
-const repairAccessorsShim = cleanupSource(
-  `"use strict"; (${repairAccessors})();`
-);
-const repairFunctionsShim = cleanupSource(
-  `"use strict"; (${repairFunctions})();`
-);
+const repairAccessorsShim = safeStringifyFunction(repairAccessors);
+const repairFunctionsShim = safeStringifyFunction(repairFunctions);
 
 // Create a new unsafeRec from a brand new context, with new intrinsics and a
 // new global object
 export function createNewUnsafeRec(allShims) {
   const unsafeGlobal = getNewUnsafeGlobal();
-  unsafeGlobal.eval(repairAccessorsShim);
-  unsafeGlobal.eval(repairFunctionsShim);
+  unsafeGlobal.eval(repairAccessorsShim)();
+  unsafeGlobal.eval(repairFunctionsShim)();
   return createUnsafeRec(unsafeGlobal, allShims);
 }
 

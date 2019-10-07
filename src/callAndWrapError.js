@@ -1,4 +1,4 @@
-import { cleanupSource } from './utilities';
+import { safeStringifyFunction } from './utilities';
 
 function buildCallAndWrapError() {
   // This Object and Reflect are brand new, from a new unsafeRec, so no user
@@ -89,8 +89,8 @@ function buildCallAndWrapError() {
   return callAndWrapError;
 }
 
-const buildCallAndWrapErrorString = cleanupSource(
-  `'use strict'; (${buildCallAndWrapError})`
+const buildCallAndWrapErrorString = safeStringifyFunction(
+  buildCallAndWrapError
 );
 export function createCallAndWrapError(unsafeEval) {
   return unsafeEval(buildCallAndWrapErrorString)();
