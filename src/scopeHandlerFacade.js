@@ -1,4 +1,4 @@
-import { cleanupSource } from './utilities';
+import { safeStringifyFunction } from './utilities';
 
 /**
  * ScopeHandler manages a Proxy which serves as the global scope for the
@@ -26,7 +26,6 @@ export function buildScopeHandler(
 
   const { freeze } = Object;
   const { get: reflectGet } = Reflect;
-  const { unscopables } = Symbol;
 
   /**
    * alwaysThrowHandler is a proxy handler which throws on any trap called.
@@ -55,7 +54,7 @@ export function buildScopeHandler(
     useUnsafeEvaluator: false,
 
     get(shadow, prop) {
-      if (prop === unscopables) {
+      if (typeof prop === 'symbol') {
         // Safe to return a primal realm Object here because the only code that
         // can do a get() on a non-string is the internals of with() itself,
         // and the only thing it does is to look for properties on it. User
@@ -161,9 +160,7 @@ export function buildScopeHandler(
   };
 }
 
-const buildScopeHandlerString = cleanupSource(
-  `'use strict'; (${buildScopeHandler})`
-);
+const buildScopeHandlerString = safeStringifyFunction(buildScopeHandler);
 export function createScopeHandler(
   unsafeRec,
   safeGlobal,
