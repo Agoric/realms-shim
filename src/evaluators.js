@@ -103,12 +103,6 @@ export function createSafeEvaluatorFactory(
   transforms,
   sloppyGlobals
 ) {
-  const constants = getOptimizableGlobals(safeGlobal);
-  const scopedEvaluatorFactory = createScopedEvaluatorFactory(
-    unsafeRec,
-    constants
-  );
-
   function factory(endowments = {}, options = {}) {
     // todo clone all arguments passed to returned function
     const localTransforms = options.transforms || [];
@@ -124,6 +118,19 @@ export function createSafeEvaluatorFactory(
     function safeEvalOperation(src) {
       let rewriterState = { src, endowments };
       rewriterState = applyTransforms(rewriterState, allTransforms);
+
+      // Combine all optimizable globals.
+      const globalConstants = getOptimizableGlobals(
+        safeGlobal,
+        rewriterState.endowments
+      );
+      const localConstants = getOptimizableGlobals(rewriterState.endowments);
+      const constants = arrayConcat(globalConstants, localConstants);
+
+      const scopedEvaluatorFactory = createScopedEvaluatorFactory(
+        unsafeRec,
+        constants
+      );
 
       const scopeHandler = createScopeHandler(
         unsafeRec,

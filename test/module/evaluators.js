@@ -218,7 +218,7 @@ test('createSafeEvaluatorWhichTakesEndowments - options.transforms', t => {
 });
 
 test('createSafeEvaluatorWhichTakesEndowments', t => {
-  t.plan(9);
+  t.plan(10);
 
   // Mimic repairFunctions.
   // eslint-disable-next-line no-proto
@@ -238,17 +238,17 @@ test('createSafeEvaluatorWhichTakesEndowments', t => {
   t.equal(safeEval('foo', {}), 1);
   t.equal(safeEval('bar', {}), 2);
 
-  t.equal(safeEval('foo', endowments), 1);
+  t.equal(safeEval('foo', endowments), 3);
   t.equal(safeEval('bar', endowments), 4);
 
   t.throws(() => safeEval('foo = 5', {}), TypeError);
-  safeEval('bar = 6', {});
+  t.doesNotThrow(() => safeEval('bar = 6', {}), TypeError);
 
   t.equal(safeEval('foo', {}), 1);
   t.equal(safeEval('bar', {}), 6);
 
-  t.throws(() => safeEval('foo = 7', endowments), TypeError);
-  t.throws(() => safeEval('bar = 8', endowments), TypeError);
+  t.doesNotThrow(() => safeEval('foo = 7', endowments), TypeError);
+  t.doesNotThrow(() => safeEval('bar = 8', endowments), TypeError);
 
   // eslint-disable-next-line no-proto
   Function.__proto__.constructor.restore();

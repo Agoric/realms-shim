@@ -1,6 +1,6 @@
 import {
   arrayFilter,
-  getOwnPropertyDescriptors,
+  getOwnPropertyDescriptor,
   getOwnPropertyNames,
   objectHasOwnProperty,
   regexpTest
@@ -96,12 +96,16 @@ const keywords = new Set([
  * service if any of the names are keywords or keyword-like. This is
  * safe and only prevent performance optimization.
  */
-export function getOptimizableGlobals(safeGlobal) {
-  const descs = getOwnPropertyDescriptors(safeGlobal);
-
+export function getOptimizableGlobals(globalObject, endowments = {}) {
+  const globalNames = getOwnPropertyNames(globalObject);
   // getOwnPropertyNames does ignore Symbols so we don't need this extra check:
   // typeof name === 'string' &&
-  const constants = arrayFilter(getOwnPropertyNames(descs), name => {
+  const constants = arrayFilter(globalNames, name => {
+    // Exclude globals that will be hidden by the endowments.
+    if (name in endowments) {
+      return false;
+    }
+
     // Ensure we have a valid identifier. We use regexpTest rather than
     // /../.test() to guard against the case where RegExp has been poisoned.
     if (
@@ -112,7 +116,7 @@ export function getOptimizableGlobals(safeGlobal) {
       return false;
     }
 
-    const desc = descs[name];
+    const desc = getOwnPropertyDescriptor(globalObject, name);
     return (
       //
       // The getters will not have .writable, don't let the falsyness of
