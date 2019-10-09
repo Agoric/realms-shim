@@ -96,13 +96,14 @@ const keywords = new Set([
  * service if any of the names are keywords or keyword-like. This is
  * safe and only prevent performance optimization.
  */
-export function getOptimizableGlobals(globalObject, endowments = {}) {
+export function getOptimizableGlobals(globalObject, localObject = {}) {
   const globalNames = getOwnPropertyNames(globalObject);
   // getOwnPropertyNames does ignore Symbols so we don't need this extra check:
   // typeof name === 'string' &&
   const constants = arrayFilter(globalNames, name => {
-    // Exclude globals that will be hidden by the endowments.
-    if (name in endowments) {
+    // Exclude globals that will be hidden behind an object positioned
+    // closer in the resolution scope chain, typically the endowments.
+    if (name in localObject) {
       return false;
     }
 

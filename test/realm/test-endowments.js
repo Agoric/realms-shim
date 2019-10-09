@@ -24,7 +24,7 @@ test('endowments are mutable but not shared between calls to r.evaluate', t => {
   t.equal(r.evaluate(`endow1 = 4; endow1`, { endow1: 1 }), 4);
   t.equal(r.evaluate(`endow1 += 4; endow1`, { endow1: 1 }), 5);
 
-  // the global not modified when an endowment shadows it
+  // the global is not modified when an endowment shadows it
   t.throws(() => r.evaluate(`endow1`), ReferenceError);
   t.equal(r.global.endow1, undefined);
 
