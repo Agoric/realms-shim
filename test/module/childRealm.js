@@ -1,16 +1,16 @@
 import test from 'tape';
 import sinon from 'sinon';
-import { createCallAndWrapError } from '../../src/callAndWrapError';
-import { buildChildRealm, createRealmFacade } from '../../src/realmFacade';
-
-const callAndWrapError = createCallAndWrapError(eval);
+import { buildCallAndWrapErrorString } from '../../src/callAndWrapError';
+import { buildChildRealmString } from '../../src/childRealm';
 
 const unsafeRec = {
   unsafeGlobal: global,
   unsafeEval: eval,
-  unsafeFunction: Function,
-  callAndWrapError
+  unsafeFunction: Function
 };
+unsafeRec.callAndWrapError = unsafeRec.unsafeEval(
+  buildCallAndWrapErrorString
+)();
 
 const BaseRealm = {
   initRootRealm: () => undefined,
@@ -31,7 +31,10 @@ test('buildChildRealm - Realm callAndWrapError() invoked', t => {
     throw 'initCompartment';
   });
 
-  const Realm = buildChildRealm(unsafeRec, BaseRealm);
+  const Realm = unsafeRec.unsafeEval(buildChildRealmString)(
+    unsafeRec,
+    BaseRealm
+  );
 
   t.throws(() => Realm.makeRootRealm(), /initRootRealm/);
   t.throws(() => Realm.makeCompartment(), /initCompartment/);
@@ -52,7 +55,10 @@ test('buildChildRealm - callAndWrapError() invoked', t => {
     throw 'evaluate';
   });
 
-  const Realm = buildChildRealm(unsafeRec, BaseRealm);
+  const Realm = unsafeRec.unsafeEval(buildChildRealmString)(
+    unsafeRec,
+    BaseRealm
+  );
   const rootRealm = Realm.makeRootRealm();
 
   t.throws(() => rootRealm.global, /getGlobal/);
@@ -70,7 +76,10 @@ test('buildChildRealm - callAndWrapError() error types', t => {
     throw error;
   });
 
-  const Realm = buildChildRealm(unsafeRec, BaseRealm);
+  const Realm = unsafeRec.unsafeEval(buildChildRealmString)(
+    unsafeRec,
+    BaseRealm
+  );
   t.throws(() => {
     error = '123';
     Realm.makeRootRealm();
@@ -105,7 +114,10 @@ test('buildChildRealm - callAndWrapError() error throws', t => {
     };
   });
 
-  const Realm = buildChildRealm(unsafeRec, BaseRealm);
+  const Realm = unsafeRec.unsafeEval(buildChildRealmString)(
+    unsafeRec,
+    BaseRealm
+  );
   t.throws(() => Realm.makeRootRealm(), /unknown error/);
 
   BaseRealm.initRootRealm.restore();
@@ -122,7 +134,10 @@ test('buildChildRealm - callAndWrapError() unknown error type', t => {
     };
   });
 
-  const Realm = buildChildRealm(unsafeRec, BaseRealm);
+  const Realm = unsafeRec.unsafeEval(buildChildRealmString)(
+    unsafeRec,
+    BaseRealm
+  );
   t.throws(() => Realm.makeRootRealm(), Error);
 
   BaseRealm.initRootRealm.restore();
@@ -131,7 +146,10 @@ test('buildChildRealm - callAndWrapError() unknown error type', t => {
 test('buildChildRealm - toString()', t => {
   t.plan(2);
 
-  const Realm = buildChildRealm(unsafeRec, BaseRealm);
+  const Realm = unsafeRec.unsafeEval(buildChildRealmString)(
+    unsafeRec,
+    BaseRealm
+  );
   const rootRealm = Realm.makeRootRealm();
 
   t.equals(Realm.toString(), 'function Realm() { [shim code] }');
@@ -143,7 +161,10 @@ test('buildChildRealm - Realm.makeRootRealm', t => {
 
   sinon.spy(BaseRealm, 'initRootRealm');
 
-  const Realm = buildChildRealm(unsafeRec, BaseRealm);
+  const Realm = unsafeRec.unsafeEval(buildChildRealmString)(
+    unsafeRec,
+    BaseRealm
+  );
   const options = {};
   Realm.makeRootRealm(options);
 
@@ -163,7 +184,10 @@ test('buildChildRealm - Realm.makeCompartment', t => {
 
   sinon.spy(BaseRealm, 'initCompartment');
 
-  const Realm = buildChildRealm(unsafeRec, BaseRealm);
+  const Realm = unsafeRec.unsafeEval(buildChildRealmString)(
+    unsafeRec,
+    BaseRealm
+  );
   Realm.makeCompartment();
 
   t.equals(BaseRealm.initCompartment.callCount, 1);
@@ -183,7 +207,10 @@ test('buildChildRealm - realm.global', t => {
   const expectedGlobal = {};
   sinon.stub(BaseRealm, 'getRealmGlobal').callsFake(() => expectedGlobal);
 
-  const Realm = buildChildRealm(unsafeRec, BaseRealm);
+  const Realm = unsafeRec.unsafeEval(buildChildRealmString)(
+    unsafeRec,
+    BaseRealm
+  );
   const compartment = Realm.makeCompartment();
   const actualGlobal = compartment.global;
 
@@ -206,7 +233,10 @@ test('buildChildRealm - realm.evaluate', t => {
   const source = 'abc';
   const endowments = {};
   const options = {};
-  const Realm = buildChildRealm(unsafeRec, BaseRealm);
+  const Realm = unsafeRec.unsafeEval(buildChildRealmString)(
+    unsafeRec,
+    BaseRealm
+  );
   const compartment = Realm.makeCompartment();
   const actualResult = compartment.evaluate(source, endowments);
 
@@ -221,39 +251,5 @@ test('buildChildRealm - realm.evaluate', t => {
 
   t.equals(actualResult, expectedResult);
 
-  BaseRealm.realmEvaluate.restore();
-});
-
-test('createRealmFacade', t => {
-  t.plan(5);
-
-  // The child realm was tested above, here we only
-  // check that the facade works as expected.
-
-  sinon.spy(BaseRealm, 'initRootRealm');
-  sinon.spy(BaseRealm, 'initCompartment');
-  sinon.spy(BaseRealm, 'getRealmGlobal');
-  sinon.spy(BaseRealm, 'realmEvaluate');
-
-  sinon.spy(unsafeRec, 'unsafeEval');
-
-  const Realm = createRealmFacade(unsafeRec, BaseRealm);
-  const rootRealm = Realm.makeRootRealm();
-  rootRealm.global; // eslint-disable-line no-unused-expressions
-  rootRealm.evaluate();
-  const compartment = Realm.makeCompartment();
-  compartment.global; // eslint-disable-line no-unused-expressions
-  compartment.evaluate();
-
-  t.equals(unsafeRec.unsafeEval.callCount, 1);
-
-  t.equals(BaseRealm.initRootRealm.callCount, 1);
-  t.equals(BaseRealm.initCompartment.callCount, 1);
-  t.equals(BaseRealm.getRealmGlobal.callCount, 2);
-  t.equals(BaseRealm.realmEvaluate.callCount, 2);
-
-  BaseRealm.initRootRealm.restore();
-  BaseRealm.initCompartment.restore();
-  BaseRealm.getRealmGlobal.restore();
   BaseRealm.realmEvaluate.restore();
 });

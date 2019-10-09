@@ -159,18 +159,4 @@ export function buildScopeHandler(
   };
 }
 
-const buildScopeHandlerString = safeStringifyFunction(buildScopeHandler);
-export function createScopeHandler(
-  unsafeRec,
-  safeGlobal,
-  endowments,
-  sloppyGlobals
-) {
-  const { unsafeEval } = unsafeRec;
-  return unsafeEval(buildScopeHandlerString)(
-    unsafeRec,
-    safeGlobal,
-    endowments,
-    sloppyGlobals
-  );
-}
+export const buildScopeHandlerString = safeStringifyFunction(buildScopeHandler);

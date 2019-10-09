@@ -35,8 +35,4 @@ function buildSafeEval(unsafeRec, safeEvalOperation) {
 
   return safeEval;
 }
-const buildSafeEvalString = safeStringifyFunction(buildSafeEval);
-export function createSafeEval(unsafeRec, safeEvalOperation) {
-  const { unsafeEval } = unsafeRec;
-  return unsafeEval(buildSafeEvalString)(unsafeRec, safeEvalOperation);
-}
+export const buildSafeEvalString = safeStringifyFunction(buildSafeEval);

@@ -1,5 +1,5 @@
 // this module must never be importable outside the Realm shim itself
-import { createCallAndWrapError } from './callAndWrapError';
+import { buildCallAndWrapErrorString } from './callAndWrapError';
 import { getSharedGlobalDescs } from './stdlib';
 import { repairAccessors } from './repair/accessors';
 import { repairFunctions } from './repair/functions';
@@ -84,8 +84,7 @@ function createUnsafeRec(unsafeGlobal, allShims = []) {
 
   const unsafeEval = unsafeGlobal.eval;
   const unsafeFunction = unsafeGlobal.Function;
-
-  const callAndWrapError = createCallAndWrapError(unsafeEval);
+  const callAndWrapError = unsafeEval(buildCallAndWrapErrorString)();
 
   return freeze({
     unsafeGlobal,
@@ -97,22 +96,25 @@ function createUnsafeRec(unsafeGlobal, allShims = []) {
   });
 }
 
-const repairAccessorsShim = safeStringifyFunction(repairAccessors);
-const repairFunctionsShim = safeStringifyFunction(repairFunctions);
+const repairAccessorsString = safeStringifyFunction(repairAccessors);
+const repairFunctionsString = safeStringifyFunction(repairFunctions);
 
 // Create a new unsafeRec from a brand new context, with new intrinsics and a
 // new global object
 export function createNewUnsafeRec(allShims) {
   const unsafeGlobal = getNewUnsafeGlobal();
-  unsafeGlobal.eval(repairAccessorsShim)();
-  unsafeGlobal.eval(repairFunctionsShim)();
-  return createUnsafeRec(unsafeGlobal, allShims);
+  const unsafeRec = createUnsafeRec(unsafeGlobal, allShims);
+  const { unsafeEval } = unsafeRec;
+  unsafeEval(repairAccessorsString)();
+  unsafeEval(repairFunctionsString)();
+  return unsafeRec;
 }
 
 // Create a new unsafeRec from the current context, where the Realm shim is
 // being parsed and executed, aka the "Primal Realm"
 export function createCurrentUnsafeRec() {
-  const unsafeGlobal = (0, eval)(unsafeGlobalSrc);
+  const unsafeEval = eval;
+  const unsafeGlobal = unsafeEval(unsafeGlobalSrc);
   repairAccessors();
   repairFunctions();
   return createUnsafeRec(unsafeGlobal);

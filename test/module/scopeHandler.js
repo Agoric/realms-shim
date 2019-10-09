@@ -1,14 +1,16 @@
 import test from 'tape';
 import sinon from 'sinon';
-import { createScopeHandler } from '../../src/scopeHandlerFacade';
+import { buildScopeHandlerString } from '../../src/scopeHandler';
 
 test('scope handler traps', t => {
   t.plan(13);
 
   sinon.stub(console, 'error').callsFake();
 
-  const unsafeEval = eval;
-  const handler = createScopeHandler({ unsafeEval });
+  const unsafeRec = {
+    unsafeEval: eval
+  };
+  const handler = unsafeRec.unsafeEval(buildScopeHandlerString)(unsafeRec);
 
   ['has', 'get', 'set', 'getPrototypeOf'].forEach(trap =>
     t.doesNotThrow(() => handler[trap])
@@ -37,9 +39,15 @@ test('scope handler has', t => {
   t.plan(9);
 
   const unsafeGlobal = { foo: {} };
-  const unsafeEval = eval;
+  const unsafeRec = {
+    unsafeGlobal,
+    unsafeEval: eval
+  };
   const safeGlobal = { bar: {} };
-  const handler = createScopeHandler({ unsafeGlobal, unsafeEval }, safeGlobal);
+  const handler = unsafeRec.unsafeEval(buildScopeHandlerString)(
+    unsafeRec,
+    safeGlobal
+  );
   const target = null;
 
   t.equal(handler.has(target, 'eval'), true);
@@ -61,9 +69,12 @@ test('scope handler get', t => {
   t.plan(13);
 
   const unsafeGlobal = { foo: {} };
-  const unsafeEval = eval;
+  const unsafeRec = { unsafeGlobal, unsafeEval: eval };
   const safeGlobal = { eval: {}, bar: {} };
-  const handler = createScopeHandler({ unsafeGlobal, unsafeEval }, safeGlobal);
+  const handler = unsafeRec.unsafeEval(buildScopeHandlerString)(
+    unsafeRec,
+    safeGlobal
+  );
   const target = null;
 
   t.equal(handler.useUnsafeEvaluator, false); // initial
@@ -71,7 +82,7 @@ test('scope handler get', t => {
 
   handler.useUnsafeEvaluator = true;
   t.equal(handler.useUnsafeEvaluator, true);
-  t.equal(handler.get(target, 'eval'), unsafeEval);
+  t.equal(handler.get(target, 'eval'), unsafeRec.unsafeEval);
   t.equal(handler.useUnsafeEvaluator, false);
   t.equal(handler.get(target, 'eval'), safeGlobal.eval);
   t.equal(handler.useUnsafeEvaluator, false);
@@ -89,11 +100,11 @@ test('scope handler set', t => {
   t.plan(4);
 
   const unsafeGlobal = {};
-  const unsafeEval = eval;
+  const unsafeRec = { unsafeGlobal, unsafeEval: eval };
   const safeGlobal = { bar: {} };
   const endowments = { foo: {} };
-  const handler = createScopeHandler(
-    { unsafeGlobal, unsafeEval },
+  const handler = unsafeRec.unsafeEval(buildScopeHandlerString)(
+    unsafeRec,
     safeGlobal,
     endowments
   );

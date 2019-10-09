@@ -1,4 +1,4 @@
-import { createRealmFacade, buildChildRealm } from './realmFacade';
+import { buildChildRealm, buildChildRealmString } from './childRealm';
 import { createNewUnsafeRec, createCurrentUnsafeRec } from './unsafeRec';
 import {
   createSafeEvaluatorFactory,
@@ -95,9 +95,13 @@ function initRootRealm(parentUnsafeRec, self, options) {
 
   // The unsafe record is created already repaired.
   const unsafeRec = createNewUnsafeRec(allShims);
+  const { unsafeEval } = unsafeRec;
 
-  // eslint-disable-next-line no-use-before-define
-  const Realm = createRealmFacade(unsafeRec, BaseRealm);
+  const Realm = unsafeEval(buildChildRealmString)(
+    unsafeRec,
+    // eslint-disable-next-line no-use-before-define
+    BaseRealm
+  );
 
   // Add a Realm descriptor to sharedGlobalDescs, so it can be defined onto the
   // safeGlobal like the rest of the globals.
