@@ -1,7 +1,6 @@
 import test from 'tape';
 import sinon from 'sinon';
 
-import { createCallAndWrapError } from '../../src/callAndWrapError';
 import {
   createSafeEvaluatorFactory,
   createSafeEvaluator,
@@ -9,14 +8,16 @@ import {
   createFunctionEvaluator
 } from '../../src/evaluators';
 
-const callAndWrapError = createCallAndWrapError(eval);
+import { buildCallAndWrapErrorString } from '../../src/callAndWrapError';
 
-const unsafeRecord = {
+const unsafeRec = {
   unsafeGlobal: {},
   unsafeEval: eval,
-  unsafeFunction: Function,
-  callAndWrapError
+  unsafeFunction: Function
 };
+unsafeRec.callAndWrapError = unsafeRec.unsafeEval(
+  buildCallAndWrapErrorString
+)();
 
 test('createSafeEvaluator', t => {
   t.plan(27);
@@ -32,11 +33,11 @@ test('createSafeEvaluator', t => {
     bar: { value: 2, writable: true }
   });
   const safeEval = createSafeEvaluator(
-    unsafeRecord,
-    createSafeEvaluatorFactory(unsafeRecord, safeGlobal)()
+    unsafeRec,
+    createSafeEvaluatorFactory(unsafeRec, safeGlobal)()
   );
 
-  t.equal(safeEval('foo'), 1);
+  t.equal(safeEval('debugger; foo'), 1);
   t.equal(safeEval('bar'), 2);
   t.throws(() => safeEval('none'), ReferenceError);
   t.equal(safeEval('this.foo'), 1);
@@ -47,7 +48,7 @@ test('createSafeEvaluator', t => {
     safeGlobal.foo = 3;
   }, TypeError);
   safeGlobal.bar = 4;
-  unsafeRecord.unsafeGlobal.none = 5;
+  unsafeRec.unsafeGlobal.none = 5;
 
   t.equal(safeEval('foo'), 1);
   t.equal(safeEval('bar'), 4);
@@ -101,7 +102,7 @@ test('createSafeEvaluatorWhichTakesEndowments - options.sloppyGlobals', t => {
 
     const safeEval = createSafeEvaluatorWhichTakesEndowments(
       createSafeEvaluatorFactory(
-        unsafeRecord,
+        unsafeRec,
         safeGlobal,
         realmTransforms,
         sloppyGlobals
@@ -159,7 +160,7 @@ test('createSafeEvaluatorWhichTakesEndowments - options.transforms', t => {
     ];
 
     const safeEval = createSafeEvaluatorWhichTakesEndowments(
-      createSafeEvaluatorFactory(unsafeRecord, safeGlobal, realmTransforms)
+      createSafeEvaluatorFactory(unsafeRec, safeGlobal, realmTransforms)
     );
     const options = {
       transforms: [
@@ -231,7 +232,7 @@ test('createSafeEvaluatorWhichTakesEndowments', t => {
     bar: { value: 2, writable: true }
   });
   const safeEval = createSafeEvaluatorWhichTakesEndowments(
-    createSafeEvaluatorFactory(unsafeRecord, safeGlobal)
+    createSafeEvaluatorFactory(unsafeRec, safeGlobal)
   );
   const endowments = { foo: 3, bar: 4 };
 
@@ -268,8 +269,8 @@ test('createFunctionEvaluator', t => {
     bar: { value: 2, writable: true }
   });
   const safeFunction = createFunctionEvaluator(
-    unsafeRecord,
-    createSafeEvaluatorFactory(unsafeRecord, safeGlobal)()
+    unsafeRec,
+    createSafeEvaluatorFactory(unsafeRec, safeGlobal)()
   );
 
   t.equal(safeFunction('return foo')(), 1);
@@ -331,7 +332,7 @@ test('createFunctionEvaluator', t => {
   Function.__proto__.constructor.restore();
 });
 
-test('createSafeEvaluator - broken', t => {
+test('createSafeEvaluator - broken unsafeFunction', t => {
   t.plan(1);
 
   // Mimic repairFunctions.
@@ -339,7 +340,7 @@ test('createSafeEvaluator - broken', t => {
   sinon.stub(Function.__proto__, 'constructor').callsFake(() => {
     throw new TypeError();
   });
-  // Prevent outpur
+  // Prevent output
   sinon.stub(console, 'error').callsFake();
 
   // A function that returns a function that always throw;
@@ -352,14 +353,14 @@ test('createSafeEvaluator - broken', t => {
   }
   unsafeFunction.prototype = Function.prototype;
 
-  const unsafeRecord = { unsafeFunction, unsafeEval: eval, callAndWrapError };
+  const unsafeRecBroken = { ...unsafeRec, unsafeFunction };
   const safeGlobal = {};
 
   t.throws(() => {
     // Internally, createSafeEvaluator might use safeEval, so we wrap everything.
     const safeEval = createSafeEvaluator(
-      unsafeRecord,
-      createSafeEvaluatorFactory(unsafeRecord, safeGlobal)()
+      unsafeRec,
+      createSafeEvaluatorFactory(unsafeRecBroken, safeGlobal)()
     );
     safeEval('true');
   }, /handler did not revoke useUnsafeEvaluator/);

@@ -14,9 +14,9 @@ import {
   stringIncludes
 } from './commons';
 import { getOptimizableGlobals } from './optimizer';
-import { createScopeHandler } from './scopeHandlerFacade';
-import { createSafeEval } from './safeEvalFacade';
-import { createSafeFunction } from './safeFunctionFacade';
+import { buildScopeHandlerString } from './scopeHandler';
+import { buildSafeEvalString } from './safeEval';
+import { buildSafeFunctionString } from './safeFunction';
 import { rejectDangerousSourcesTransform } from './sourceParser';
 
 function buildOptimizer(constants) {
@@ -103,6 +103,8 @@ export function createSafeEvaluatorFactory(
   transforms,
   sloppyGlobals
 ) {
+  const { unsafeEval } = unsafeRec;
+
   function factory(endowments = {}, options = {}) {
     // todo clone all arguments passed to returned function
     const localTransforms = options.transforms || [];
@@ -132,7 +134,7 @@ export function createSafeEvaluatorFactory(
         constants
       );
 
-      const scopeHandler = createScopeHandler(
+      const scopeHandler = unsafeEval(buildScopeHandlerString)(
         unsafeRec,
         safeGlobal,
         rewriterState.endowments,
@@ -171,9 +173,12 @@ export function createSafeEvaluatorFactory(
 }
 
 export function createSafeEvaluator(unsafeRec, safeEvalOperation) {
-  const { unsafeFunction } = unsafeRec;
+  const { unsafeEval, unsafeFunction } = unsafeRec;
 
-  const safeEval = createSafeEval(unsafeRec, safeEvalOperation);
+  const safeEval = unsafeEval(buildSafeEvalString)(
+    unsafeRec,
+    safeEvalOperation
+  );
 
   assert(getPrototypeOf(safeEval).constructor !== Function, 'hide Function');
   assert(
@@ -194,7 +199,7 @@ export function createSafeEvaluatorWhichTakesEndowments(safeEvaluatorFactory) {
  * the safety of evalEvaluator for confinement.
  */
 export function createFunctionEvaluator(unsafeRec, safeEvalOperation) {
-  const { unsafeGlobal, unsafeFunction } = unsafeRec;
+  const { unsafeGlobal, unsafeEval, unsafeFunction } = unsafeRec;
 
   function safeFunctionOperation(...params) {
     const functionBody = `${arrayPop(params) || ''}`;
@@ -254,7 +259,10 @@ export function createFunctionEvaluator(unsafeRec, safeEvalOperation) {
     return safeEvalOperation(src);
   }
 
-  const safeFunction = createSafeFunction(unsafeRec, safeFunctionOperation);
+  const safeFunction = unsafeEval(buildSafeFunctionString)(
+    unsafeRec,
+    safeFunctionOperation
+  );
 
   assert(
     getPrototypeOf(safeFunction).constructor !== Function,

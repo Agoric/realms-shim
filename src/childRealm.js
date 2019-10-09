@@ -84,23 +84,4 @@ export function buildChildRealm(unsafeRec, BaseRealm) {
 // The parentheses means we don't bind the 'buildChildRealm' name inside the
 // child's namespace. this would accept an anonymous function declaration.
 // function expression (not a declaration) so it has a completion value.
-const buildChildRealmString = safeStringifyFunction(buildChildRealm);
-
-export function createRealmFacade(unsafeRec, BaseRealm) {
-  const { unsafeEval } = unsafeRec;
-  // The BaseRealm is the Realm class created by
-  // the shim. It's only valid for the context where
-  // it was parsed.
-
-  // The Realm facade is a lightweight class built in the
-  // context a different context, that provide a fully
-  // functional Realm class using the intrisics
-  // of that context.
-
-  // This process is simplified because all methods
-  // and properties on a realm instance already return
-  // values using the intrinsics of the realm's context.
-
-  // Invoke the BaseRealm constructor with Realm as the prototype.
-  return unsafeEval(buildChildRealmString)(unsafeRec, BaseRealm);
-}
+export const buildChildRealmString = safeStringifyFunction(buildChildRealm);

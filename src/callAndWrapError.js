@@ -89,9 +89,6 @@ function buildCallAndWrapError() {
   return callAndWrapError;
 }
 
-const buildCallAndWrapErrorString = safeStringifyFunction(
+export const buildCallAndWrapErrorString = safeStringifyFunction(
   buildCallAndWrapError
 );
-export function createCallAndWrapError(unsafeEval) {
-  return unsafeEval(buildCallAndWrapErrorString)();
-}
