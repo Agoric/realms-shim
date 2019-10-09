@@ -108,10 +108,8 @@ test('scope handler set', t => {
   t.equal(safeGlobal.bar, bar);
 
   const foo = {};
-  t.throws(
-    () => handler.set(target, 'foo', foo),
-    /do not modify endowments like foo/
-  );
+  handler.set(target, 'foo', foo);
+  t.equal(endowments.foo, foo);
 
   t.equal(Object.keys(unsafeGlobal).length, 0);
 });

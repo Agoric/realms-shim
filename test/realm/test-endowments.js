@@ -19,21 +19,21 @@ test('endowments are not shared between calls to r.evaluate', t => {
 
 test('endowments are mutable but not shared between calls to r.evaluate', t => {
   const r = Realm.makeRootRealm();
-  // fixed a bug: the Handlers 'get' finds the property on the target (which
-  // has the endowments), the subsequent 'set' modifies it on the safeGlobal
-  // (via getPrototypeOf(target)), then the next 'get' pulls the original
-  // value from the target again
-  // t.equal(r.evaluate(`endow1 = 4; endow1`, { endow1: 1 }), 4);
 
-  // we fixed this by rejecting assignments to endowments
-  t.throws(() => r.evaluate(`endow1 = 4`, { endow1: 1 }), TypeError);
-  t.throws(() => r.evaluate(`endow1 += 4`, { endow1: 1 }), TypeError);
+  // assignment to endowments works
+  t.equal(r.evaluate(`endow1 = 4; endow1`, { endow1: 1 }), 4);
+  t.equal(r.evaluate(`endow1 += 4; endow1`, { endow1: 1 }), 5);
+
+  // the global is not modified when an endowment shadows it
   t.throws(() => r.evaluate(`endow1`), ReferenceError);
+  t.equal(r.global.endow1, undefined);
 
   // assignment to global works even when an endowment shadows it
   t.equal(r.evaluate(`this.endow1 = 4; this.endow1`, { endow1: 1 }), 4);
+  t.equal(r.evaluate(`this.endow1 = 4; endow1`, { endow1: 1 }), 1);
 
   // the modified global is now visible when there is no endowment to shadow it
+  t.equal(r.global.endow1, 4);
   t.equal(r.evaluate(`endow1`), 4);
 
   // endowments shadow globals

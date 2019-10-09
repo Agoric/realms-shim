@@ -24,8 +24,8 @@ export function buildScopeHandler(
 ) {
   const { unsafeGlobal, unsafeEval } = unsafeRec;
 
-  const { freeze } = Object;
-  const { get: reflectGet } = Reflect;
+  const { freeze, getOwnPropertyDescriptor } = Object;
+  const { get: reflectGet, set: reflectSet } = Reflect;
 
   /**
    * alwaysThrowHandler is a proxy handler which throws on any trap called.
@@ -75,35 +75,34 @@ export function buildScopeHandler(
         // fall through
       }
 
-      // Properties of the global.
+      // Properties of the endowments.
       if (prop in endowments) {
+        // Ensure that the 'this' value on getters resolves
+        // to the safeGlobal, not to the endowments object.
         return reflectGet(endowments, prop, safeGlobal);
       }
 
       // Properties of the global.
-      if (prop in safeGlobal) {
-        return safeGlobal[prop];
-      }
-
-      // Prevent the lookup for other properties.
-      return undefined;
+      return reflectGet(safeGlobal, prop);
     },
 
     // eslint-disable-next-line class-methods-use-this
     set(shadow, prop, value) {
-      // todo: allow modifications when prop in endowments and it
-      // is writable, assuming we've already rejected overlap (see
-      // createSafeEvaluatorFactory.factory). This TypeError gets replaced with
-      // reflectSet(endowments, prop, value, safeGlobal);
+      // Properties of the endowments.
       if (prop in endowments) {
-        // todo: shim integrity: TypeError, String
-        throw new TypeError(`do not modify endowments like ${String(prop)}`);
+        const desc = getOwnPropertyDescriptor(endowments, prop);
+        if ('value' in desc) {
+          // Work around a peculiar behavior in the specs, where
+          // value properties are defined on the receiver.
+          return reflectSet(endowments, prop, value);
+        }
+        // Ensure that the 'this' value on setters resolves
+        // to the safeGlobal, not to the endowments object.
+        return reflectSet(endowments, prop, value, safeGlobal);
       }
 
-      safeGlobal[prop] = value;
-
-      // Return true after successful set.
-      return true;
+      // Properties of the global.
+      return reflectSet(safeGlobal, prop, value);
     },
 
     // we need has() to return false for some names to prevent the lookup  from
