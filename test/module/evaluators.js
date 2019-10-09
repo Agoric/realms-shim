@@ -37,7 +37,7 @@ test('createSafeEvaluator', t => {
     createSafeEvaluatorFactory(unsafeRec, safeGlobal)()
   );
 
-  t.equal(safeEval('debugger; foo'), 1);
+  t.equal(safeEval('foo'), 1);
   t.equal(safeEval('bar'), 2);
   t.throws(() => safeEval('none'), ReferenceError);
   t.equal(safeEval('this.foo'), 1);
