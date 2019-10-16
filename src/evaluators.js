@@ -7,8 +7,6 @@ import {
   arrayConcat,
   arrayJoin,
   arrayPop,
-  create,
-  getOwnPropertyDescriptors,
   getPrototypeOf,
   regexpTest,
   stringIncludes
@@ -17,6 +15,7 @@ import { getOptimizableGlobals } from './optimizer';
 import { buildScopeHandlerString } from './scopeHandler';
 import { buildSafeEvalString } from './safeEval';
 import { buildSafeFunctionString } from './safeFunction';
+import { applyTransformsString } from './transforms';
 import { rejectDangerousSourcesTransform } from './sourceParser';
 
 function buildOptimizer(constants) {
@@ -69,34 +68,6 @@ function createScopedEvaluatorFactory(unsafeRec, constants) {
   `);
 }
 
-function applyTransforms(rewriterState, transforms) {
-  // Clone before calling transforms.
-  rewriterState = {
-    src: `${rewriterState.src}`,
-    endowments: create(
-      null,
-      getOwnPropertyDescriptors(rewriterState.endowments)
-    )
-  };
-
-  // Rewrite the source, threading through rewriter state as necessary.
-  rewriterState = transforms.reduce(
-    (rs, transform) => (transform.rewrite ? transform.rewrite(rs) : rs),
-    rewriterState
-  );
-
-  // Clone after transforms
-  rewriterState = {
-    src: `${rewriterState.src}`,
-    endowments: create(
-      null,
-      getOwnPropertyDescriptors(rewriterState.endowments)
-    )
-  };
-
-  return rewriterState;
-}
-
 export function createSafeEvaluatorFactory(
   unsafeRec,
   safeGlobal,
@@ -104,6 +75,7 @@ export function createSafeEvaluatorFactory(
   sloppyGlobals
 ) {
   const { unsafeEval } = unsafeRec;
+  const applyTransforms = unsafeEval(applyTransformsString);
 
   function factory(endowments = {}, options = {}) {
     // todo clone all arguments passed to returned function
