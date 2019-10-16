@@ -1,5 +1,23 @@
 User-visible changes in realms-shim:
 
+## Release 1.2.1 (16-Oct-2019)
+
+SECURITY UPDATE: This release fixes a sandbox escape found by GitHub user
+"XmiliaH". All users should update to this version.
+
+* Evaluate all "transform functions" in the target Realm, to avoid leaking
+  parent-Realm objects to those functions.
+* Use pre-extracted `Array.reduce` instead of the transform list's alleged
+  `.reduce` method.
+* For more details, see
+  https://github.com/Agoric/realms-shim/security/advisories/GHSA-7cg8-pq9v-x98q
+
+Non-security fixes:
+
+* Improve how functions get stringified, so the `esm` module loader will
+  cause fewer changes to the source code. (#67)
+
+
 ## Release 1.2.0 (02-Oct-2019)
 
 SECURITY UPDATE: This release fixes multiple sandbox escapes, found by GitHub
