@@ -90,11 +90,16 @@ function initRootRealm(parentUnsafeRec, self, options) {
 
   // todo: investigate attacks via Array.species
   // todo: this accepts newShims='string', but it should reject that
-  const { shims: newShims, transforms, sloppyGlobals } = options;
+  const {
+    shims: newShims,
+    transforms,
+    sloppyGlobals,
+    configurableGlobals
+  } = options;
   const allShims = arrayConcat(parentUnsafeRec.allShims, newShims);
 
   // The unsafe record is created already repaired.
-  const unsafeRec = createNewUnsafeRec(allShims);
+  const unsafeRec = createNewUnsafeRec(allShims, configurableGlobals);
   const { unsafeEval } = unsafeRec;
 
   const Realm = unsafeEval(buildChildRealmString)(

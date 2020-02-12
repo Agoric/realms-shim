@@ -79,8 +79,15 @@ const getNewUnsafeGlobal = () => {
 // tied to a set of intrinsics, aka the "undeniables". If it were possible to
 // mix-and-match them from different contexts, that would enable some
 // attacks.
-function createUnsafeRec(unsafeGlobal, allShims = []) {
-  const sharedGlobalDescs = getSharedGlobalDescs(unsafeGlobal);
+function createUnsafeRec(
+  unsafeGlobal,
+  allShims = [],
+  configurableGlobals = false
+) {
+  const sharedGlobalDescs = getSharedGlobalDescs(
+    unsafeGlobal,
+    configurableGlobals
+  );
 
   const unsafeEval = unsafeGlobal.eval;
   const unsafeFunction = unsafeGlobal.Function;
@@ -101,9 +108,13 @@ const repairFunctionsString = safeStringifyFunction(repairFunctions);
 
 // Create a new unsafeRec from a brand new context, with new intrinsics and a
 // new global object
-export function createNewUnsafeRec(allShims) {
+export function createNewUnsafeRec(allShims, configurableGlobals = false) {
   const unsafeGlobal = getNewUnsafeGlobal();
-  const unsafeRec = createUnsafeRec(unsafeGlobal, allShims);
+  const unsafeRec = createUnsafeRec(
+    unsafeGlobal,
+    allShims,
+    configurableGlobals
+  );
   const { unsafeEval } = unsafeRec;
   unsafeEval(repairAccessorsString)();
   unsafeEval(repairFunctionsString)();
