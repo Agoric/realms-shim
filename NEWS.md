@@ -1,5 +1,12 @@
 User-visible changes in realms-shim:
 
+## Release 1.2.2 (12-Feb-2020)
+
+* Honour `options.configurableGlobals` to be set to `true` to indicate that
+  shims should be able to configure all globals, not just the non-stable
+  globals.
+  
+
 ## Release 1.2.1 (16-Oct-2019)
 
 SECURITY UPDATE: This release fixes a sandbox escape found by GitHub user
