@@ -99,7 +99,10 @@ const unstableGlobalPropertyNames = [
   'Intl'
 ];
 
-export function getSharedGlobalDescs(unsafeGlobal) {
+export function getSharedGlobalDescs(
+  unsafeGlobal,
+  configurableGlobals = false
+) {
   const descriptors = {};
 
   function describe(names, writable, enumerable, configurable) {
@@ -124,14 +127,15 @@ export function getSharedGlobalDescs(unsafeGlobal) {
     }
   }
 
-  describe(frozenGlobalPropertyNames, false, false, false);
-  // The following is correct but expensive.
-  // describe(stableGlobalPropertyNames, true, false, true);
-  // Instead, for now, we let these get optimized.
-  //
-  // TODO: We should provide an option to turn this optimization off,
-  // by feeding "true, false, true" here instead.
-  describe(stableGlobalPropertyNames, false, false, false);
+  if (configurableGlobals) {
+    describe(frozenGlobalPropertyNames, true, false, true);
+    // The following is correct but expensive.
+    describe(stableGlobalPropertyNames, true, false, true);
+  } else {
+    // Instead, for now, we let these get optimized.
+    describe(frozenGlobalPropertyNames, false, false, false);
+    describe(stableGlobalPropertyNames, false, false, false);
+  }
   // These we keep replaceable and removable, because we expect
   // others, e.g., SES, may want to do so.
   describe(unstableGlobalPropertyNames, true, false, true);

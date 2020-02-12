@@ -56,3 +56,34 @@ test('shims: inherited shims', t => {
 
   t.end();
 });
+
+test('shims: configurableGlobals', t => {
+  const shim = `(() => { try { this.Array = 999; } catch (e) {} })()`;
+
+  const r1 = Realm.makeRootRealm({ shims: [shim] });
+  t.notEqual(r1.global.Array, 999, 'optimized stable globals freeze Array');
+
+  const r2 = Realm.makeRootRealm({
+    shims: [shim],
+    configurableGlobals: true
+  });
+  t.equal(
+    r2.global.Array,
+    999,
+    'configurable stable globals allow Array mutation'
+  );
+
+  const c2 = r2.evaluate(`Realm.makeCompartment()`);
+  // FIXME: This call should be unnecessary.
+  Object.defineProperties(
+    c2.global,
+    Object.getOwnPropertyDescriptors(r2.global)
+  );
+  t.equal(
+    c2.global.Array,
+    999,
+    'configurable stable globals descend to Compartment'
+  );
+
+  t.end();
+});
