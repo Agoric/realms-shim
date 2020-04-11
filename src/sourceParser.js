@@ -59,22 +59,29 @@ const importPattern = /\bimport\s*(?:\(|\/[/*])/;
 // (import expressions cannot be the start of an object literal,
 // nor can decorators adorn blocks).
 //
-// Also note that the dollar at the end matches only the end of string.
+// Also note that the dollar at the end matches only the end of string,
+// since the 's' modifier is given.
 const allowedImportPrefix = /@[a-z]+ +\{$/s;
 
 function rejectImportExpressions(s) {
   let index = 0;
   for (;;) {
+    // Find the next `import` string in the source.
     const nextMatch = s.slice(index).search(importPattern);
     if (nextMatch === -1) {
+      // Not found, the source is okay.
       return;
     }
+    // Advance our index to the beginning of `import`.
     index += nextMatch;
+    // Take the source up to the match, and see if
+    // it ends in the allowed prefix.
     if (s.slice(0, index).match(allowedImportPrefix)) {
-      // Move the search one character forward.
+      // Move the search one character forward, and go again.
       index += 1;
       continue;
     }
+    // It doesn't end in the allowed prefix, so reject the source entirely.
     const linenum = s.slice(0, index).split('\n').length; // more or less
     throw new SyntaxError(
       `possible import expression rejected around line ${linenum}`
