@@ -72,6 +72,8 @@ test('createSafeEvaluator', t => {
   t.equal(safeEval('this.bar'), 10);
   t.equal(safeEval('this.none'), 11);
 
+  t.equal(safeEval(`(1,eval)('123')`), 123, 'indirect eval');
+
   // eslint-disable-next-line no-proto
   Function.__proto__.constructor.restore();
 });

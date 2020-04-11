@@ -52,9 +52,29 @@ function rejectHtmlComments(s) {
 
 const importPattern = /\bimport\s*(?:\(|\/[/*])/;
 
+// Still allow JSDocs that use `import()` such as:
+// * @param {import('./foo.js').MyType}
+//
+// Note that this is not valid syntax outside of a comment
+// (import expressions cannot be the start of an object literal,
+// nor can decorators adorn blocks).
+//
+// Also note that the dollar at the end matches only the end of string.
+const allowedImportPrefix = /@[a-z]+ +\{$/s;
+
 function rejectImportExpressions(s) {
-  const index = s.search(importPattern);
-  if (index !== -1) {
+  let index = 0;
+  while (true) {
+    const nextMatch = s.slice(index).search(importPattern);
+    if (nextMatch === -1) {
+      return;
+    }
+    index += nextMatch;
+    if (s.slice(0, index).match(allowedImportPrefix)) {
+      // Move the search one character forward.
+      index += 1;
+      continue;
+    }
     const linenum = s.slice(0, index).split('\n').length; // more or less
     throw new SyntaxError(
       `possible import expression rejected around line ${linenum}`
