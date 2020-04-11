@@ -64,7 +64,7 @@ const allowedImportPrefix = /@[a-z]+ +\{$/s;
 
 function rejectImportExpressions(s) {
   let index = 0;
-  while (true) {
+  for (;;) {
     const nextMatch = s.slice(index).search(importPattern);
     if (nextMatch === -1) {
       return;

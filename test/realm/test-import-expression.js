@@ -181,11 +181,7 @@ test('reject import expressions in Function', t => {
   t.throws(() => r.evaluate(wrap(obvious)), SyntaxError, 'obvious');
   t.throws(() => r.evaluate(wrap(whitespace)), SyntaxError, 'whitespace');
   t.throws(() => r.evaluate(wrap(comment)), SyntaxError, 'comment');
-  t.throws(
-    () => r.evaluate(wrap(evilAfterSafe)),
-    SyntaxError,
-    'evilAfterSafe'
-  );
+  t.throws(() => r.evaluate(wrap(evilAfterSafe)), SyntaxError, 'evilAfterSafe');
   t.throws(
     () => r.evaluate(wrap(doubleSlashComment)),
     SyntaxError,
