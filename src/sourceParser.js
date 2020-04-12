@@ -54,14 +54,17 @@ const importPattern = /\bimport\s*(?:\(|\/[/*])/;
 
 // Still allow JSDocs that use `import()` such as:
 // * @param {import('./foo.js').MyType}
+// * @param {typeof import('./foo.js').Obj}
 //
 // Note that this is not valid syntax outside of a comment
 // (import expressions cannot be the start of an object literal,
 // nor can decorators adorn blocks).
 //
-// Also note that the dollar at the end matches only the end of string,
+// Also note that the dollar at the end matches where the import begins
 // since the 's' modifier is given.
-const allowedImportPrefix = /@[a-z]+ +\{$/s;
+//
+// BE CAREFUL not to use `\s`, as that will match newlines.
+const allowedImportPrefix = /@[a-z]+ +\{(typeof +)?$/s;
 
 function rejectImportExpressions(s) {
   let index = 0;
