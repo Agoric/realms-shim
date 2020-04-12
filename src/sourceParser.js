@@ -64,7 +64,7 @@ const importPattern = /\bimport\s*(?:\(|\/[/*])/;
 // since the 's' modifier is given.
 //
 // BE CAREFUL not to use `\s`, as that will match newlines.
-const allowedImportPrefix = /@[a-z]+ +\{(typeof +)?$/s;
+const allowedImportPrefix = /@[a-z]+ +\{((type|key)of +)?$/s;
 
 function rejectImportExpressions(s) {
   let index = 0;

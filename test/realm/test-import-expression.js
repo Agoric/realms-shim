@@ -50,6 +50,8 @@ const safe4 = `/** @param {import('evil').Something} ... */`;
 
 const safe5 = `/** @param {typeof import('evil').Other} ... */`;
 
+const safe6 = `/** @param {keyof import('evil').Other} ... */`;
+
 const obvious = `const a = import('evil')`;
 
 const whitespace = `const a = import ('evil')`;
@@ -90,6 +92,7 @@ test('no-import-expression regexp', t => {
   t.equal(rejectDangerousSources(safe3), undefined, 'safe3');
   t.equal(rejectDangerousSources(safe4), undefined, 'safe4');
   t.equal(rejectDangerousSources(safe5), undefined, 'safe5');
+  t.equal(rejectDangerousSources(safe6), undefined, 'safe6');
   t.throws(() => rejectDangerousSources(obvious), SyntaxError, 'obvious');
   t.throws(() => rejectDangerousSources(whitespace), SyntaxError, 'whitespace');
   t.throws(() => rejectDangerousSources(comment), SyntaxError, 'comment');
@@ -143,6 +146,7 @@ test('reject import expressions in evaluate', t => {
   t.equal(r.evaluate(wrap(safe3)), undefined, 'safe3');
   t.equal(r.evaluate(wrap(safe4)), undefined, 'safe4');
   t.equal(r.evaluate(wrap(safe5)), undefined, 'safe5');
+  t.equal(r.evaluate(wrap(safe6)), undefined, 'safe6');
   t.throws(() => r.evaluate(wrap(obvious)), SyntaxError, 'obvious');
   t.throws(() => r.evaluate(wrap(whitespace)), SyntaxError, 'whitespace');
   t.throws(() => r.evaluate(wrap(comment)), SyntaxError, 'comment');
@@ -183,6 +187,7 @@ test('reject import expressions in Function', t => {
   r.evaluate(wrap(safe3));
   r.evaluate(wrap(safe4));
   r.evaluate(wrap(safe5));
+  r.evaluate(wrap(safe6));
   t.throws(() => r.evaluate(wrap(obvious)), SyntaxError, 'obvious');
   t.throws(() => r.evaluate(wrap(whitespace)), SyntaxError, 'whitespace');
   t.throws(() => r.evaluate(wrap(comment)), SyntaxError, 'comment');
