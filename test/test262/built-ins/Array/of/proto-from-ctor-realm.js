@@ -28,7 +28,7 @@ test('test262/built-ins/Array/of/proto-from-ctor-realm.js', t => {
   t.plan(1);
 
   const test = () => {
-    const other = Realm.makeRootRealm().global;
+    const other = new Realm().globalThis;
     const C = new other.Function();
     C.prototype = null;
 
@@ -37,7 +37,7 @@ test('test262/built-ins/Array/of/proto-from-ctor-realm.js', t => {
     t.equal(Object.getPrototypeOf(a), other.Object.prototype);
   };
 
-  const realm = Realm.makeRootRealm();
-  realm.global.t = t;
-  realm.global.eval(`(${test})()`);
+  const realm = new Realm();
+  realm.globalThis.t = t;
+  realm.globalThis.eval(`(${test})()`);
 });

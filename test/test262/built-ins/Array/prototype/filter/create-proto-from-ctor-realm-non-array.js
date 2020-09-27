@@ -34,7 +34,7 @@ test('test262/built-ins/Array/prototype/filter/create-proto-from-ctor-realm-non-
     const array = [];
     let callCount = 0;
     const CustomCtor = function() {};
-    const OObject = Realm.makeRootRealm().global.Object;
+    const OObject = new Realm().globalThis.Object;
     const speciesDesc = {
       get() {
         callCount += 1;
@@ -51,7 +51,7 @@ test('test262/built-ins/Array/prototype/filter/create-proto-from-ctor-realm-non-
     t.equal(callCount, 0, 'Array species constructor is not referenced');
   };
 
-  const realm = Realm.makeRootRealm();
-  realm.global.t = t;
-  realm.global.eval(`(${test})()`);
+  const realm = new Realm();
+  realm.globalThis.t = t;
+  realm.globalThis.eval(`(${test})()`);
 });

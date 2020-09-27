@@ -2,14 +2,14 @@ import test from 'tape';
 import Realm from '../../src/realm';
 
 test('eval.toString', t => {
-  const r = Realm.makeRootRealm();
+  const r = new Realm();
 
   t.equal(r.evaluate('eval.toString()'), 'function eval() { [shim code] }');
   t.equal(r.evaluate('""+eval'), 'function eval() { [shim code] }');
 
   t.equal(
     r.evaluate('Object.getPrototypeOf(eval.toString)'),
-    r.global.Function.prototype,
+    r.globalThis.Function.prototype,
     'eval has correct prototype'
   );
   t.notEqual(

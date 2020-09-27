@@ -20,7 +20,7 @@ test('scope handler traps', t => {
     'apply',
     'construct',
     'defineProperty',
-    'delteProperty',
+    'deleteProperty',
     'getOwnProperty',
     'isExtensible',
     'ownKeys',

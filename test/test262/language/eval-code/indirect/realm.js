@@ -33,7 +33,7 @@ test('test262/language/eval-code/indirect/realm.js', t => {
   t.plan(1);
 
   const test = () => {
-    const other = Realm.makeRootRealm().global;
+    const other = new Realm().globalThis;
     const otherEval = other.eval;
 
     otherEval('var x = 23;');
@@ -41,7 +41,7 @@ test('test262/language/eval-code/indirect/realm.js', t => {
     // t.equal(other.x, 23); // realm shim limitation
   };
 
-  const realm = Realm.makeRootRealm();
-  realm.global.t = t;
-  realm.global.eval(`(${test})()`);
+  const realm = new Realm();
+  realm.globalThis.t = t;
+  realm.globalThis.eval(`(${test})()`);
 });

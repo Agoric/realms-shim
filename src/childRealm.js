@@ -12,29 +12,27 @@ export function buildChildRealm(unsafeRec, BaseRealm) {
     realmEvaluate
   } = BaseRealm;
 
-  const { create, defineProperties } = Object;
+  const { create, defineProperties, getOwnPropertyDescriptor } = Object;
 
   class Realm {
-    constructor() {
-      // The Realm constructor is not intended to be used with the new operator
-      // or to be subclassed. It may be used as the value of an extends clause
-      // of a class definition but a super call to the Realm constructor will
-      // cause an exception.
+    constructor(options = {}) {
+      // The Realm constructor creates and initializes a new Realm object
+      // when called as a constructor.
 
-      // When Realm is called as a function, an exception is also raised because
+      // When Realm is called as a function, an exception is raised because
       // a class constructor cannot be invoked without 'new'.
-      throw new TypeError('Realm is not a constructor');
+      callAndWrapError(initRootRealm, [unsafeRec, this, options]);
     }
 
+    /** @deprecated Use `new Realm()` */
     static makeRootRealm(options = {}) {
-      // This is the exposed interface.
-
-      // Bypass the constructor.
-      const r = create(Realm.prototype);
-      callAndWrapError(initRootRealm, [unsafeRec, r, options]);
-      return r;
+      return new Realm(options);
     }
 
+    /**
+     * @deprecated Will be replaced by the `Compartment` constructor.
+     * @see https://github.com/tc39/proposal-compartments
+     */
     static makeCompartment(options = {}) {
       // Bypass the constructor.
       const r = create(Realm.prototype);
@@ -42,11 +40,7 @@ export function buildChildRealm(unsafeRec, BaseRealm) {
       return r;
     }
 
-    // we omit the constructor because it is empty. All the personalization
-    // takes place in one of the two static methods,
-    // makeRootRealm/makeCompartment
-
-    get global() {
+    get globalThis() {
       // this is safe against being called with strange 'this' because
       // baseGetGlobal immediately does a trademark check (it fails unless
       // this 'this' is present in a weakmap that is only populated with
@@ -58,6 +52,8 @@ export function buildChildRealm(unsafeRec, BaseRealm) {
       // safe against strange 'this', as above
       return callAndWrapError(realmEvaluate, [this, x, endowments, options]);
     }
+
+    // TODO: Implement `Realm.prototype.import(...)`
   }
 
   defineProperties(Realm, {
@@ -70,8 +66,10 @@ export function buildChildRealm(unsafeRec, BaseRealm) {
   });
 
   defineProperties(Realm.prototype, {
-    toString: {
-      value: () => '[object Realm]',
+    /** @deprecated Use `realm.globalThis` */
+    global: getOwnPropertyDescriptor(Realm.prototype, 'globalThis'),
+    [Symbol.toStringTag]: {
+      value: 'Realm',
       writable: false,
       enumerable: false,
       configurable: true
