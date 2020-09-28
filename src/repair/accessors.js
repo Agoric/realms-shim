@@ -40,12 +40,11 @@ export function repairAccessors() {
     return;
   }
 
-  function toObject(obj) {
-    if (obj === undefined || obj === null) {
-      throw new TypeError(`can't convert undefined or null to object`);
-    }
-    return Object(obj);
-  }
+  const { apply } = Reflect;
+  const uncurryThis = fn => (thisArg, ...args) => apply(fn, thisArg, args);
+  // %Object.prototype.valueOf% performs:
+  // 1. Return ? ToObject(this value)
+  const toObject = uncurryThis(objectPrototype.valueOf);
 
   function asPropertyName(obj) {
     if (typeof obj === 'symbol') {
@@ -61,48 +60,63 @@ export function repairAccessors() {
     return obj;
   }
 
-  defineProperties(objectPrototype, {
-    __defineGetter__: {
-      value: function __defineGetter__(prop, func) {
-        const O = toObject(this);
-        defineProperty(O, prop, {
-          get: aFunction(func, 'getter'),
-          enumerable: true,
-          configurable: true
-        });
-      }
+  // We use the the concise method syntax to create methods without
+  // a [[Construct]] internal method (such that the invocation
+  // "new __method__()" throws "TypeError: __method__ is not a constructor"),
+  // but which still accepts a 'this' binding.
+  const {
+    __defineGetter__,
+    __defineSetter__,
+    __lookupGetter__,
+    __lookupSetter__
+  } = {
+    // eslint-disable-next-line no-underscore-dangle
+    __defineGetter__(prop, func) {
+      const O = toObject(this);
+      defineProperty(O, prop, {
+        get: aFunction(func, 'getter'),
+        enumerable: true,
+        configurable: true
+      });
     },
-    __defineSetter__: {
-      value: function __defineSetter__(prop, func) {
-        const O = toObject(this);
-        defineProperty(O, prop, {
-          set: aFunction(func, 'setter'),
-          enumerable: true,
-          configurable: true
-        });
-      }
+
+    // eslint-disable-next-line no-underscore-dangle
+    __defineSetter__(prop, func) {
+      const O = toObject(this);
+      defineProperty(O, prop, {
+        set: aFunction(func, 'setter'),
+        enumerable: true,
+        configurable: true
+      });
     },
-    __lookupGetter__: {
-      value: function __lookupGetter__(prop) {
-        let O = toObject(this);
-        prop = asPropertyName(prop);
-        let desc;
-        while (O && !(desc = getOwnPropertyDescriptor(O, prop))) {
-          O = getPrototypeOf(O);
-        }
-        return desc && desc.get;
+
+    // eslint-disable-next-line no-underscore-dangle
+    __lookupGetter__(prop) {
+      let O = toObject(this);
+      prop = asPropertyName(prop);
+      let desc;
+      while (O !== null && !(desc = getOwnPropertyDescriptor(O, prop))) {
+        O = getPrototypeOf(O);
       }
+      return desc && desc.get;
     },
-    __lookupSetter__: {
-      value: function __lookupSetter__(prop) {
-        let O = toObject(this);
-        prop = asPropertyName(prop);
-        let desc;
-        while (O && !(desc = getOwnPropertyDescriptor(O, prop))) {
-          O = getPrototypeOf(O);
-        }
-        return desc && desc.set;
+
+    // eslint-disable-next-line no-underscore-dangle
+    __lookupSetter__(prop) {
+      let O = toObject(this);
+      prop = asPropertyName(prop);
+      let desc;
+      while (O !== null && !(desc = getOwnPropertyDescriptor(O, prop))) {
+        O = getPrototypeOf(O);
       }
+      return desc && desc.set;
     }
+  };
+
+  defineProperties(objectPrototype, {
+    __defineGetter__: { value: __defineGetter__ },
+    __defineSetter__: { value: __defineSetter__ },
+    __lookupGetter__: { value: __lookupGetter__ },
+    __lookupSetter__: { value: __lookupSetter__ }
   });
 }

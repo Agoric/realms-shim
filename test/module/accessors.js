@@ -32,7 +32,7 @@ test('repairAccessors - force', specs => {
   } = Object;
 
   specs.test('Object#__defineGetter__', t => {
-    t.plan(9);
+    t.plan(10);
 
     t.equal(typeof __defineGetter__, 'function');
     t.equal(__defineGetter__.length, 2);
@@ -64,10 +64,16 @@ test('repairAccessors - force', specs => {
       TypeError,
       'Throws on undefined as `this`'
     );
+
+    t.throws(
+      () => new __defineGetter__(1, () => {}),
+      TypeError,
+      'Throws when invoked with `new`'
+    );
   });
 
   specs.test('Object#__defineSetter__', t => {
-    t.plan(9);
+    t.plan(10);
 
     t.equal(typeof __defineSetter__, 'function');
     t.equal(__defineSetter__.length, 2);
@@ -107,10 +113,16 @@ test('repairAccessors - force', specs => {
       TypeError,
       'Throws on undefined as `this`'
     );
+
+    t.throws(
+      () => new __defineSetter__(1, () => {}),
+      TypeError,
+      'Throws when invoked with `new`'
+    );
   });
 
   specs.test('Object#__lookupGetter__', t => {
-    t.plan(14);
+    t.plan(15);
 
     t.equal(typeof __lookupGetter__, 'function');
     t.equal(__lookupGetter__.length, 1);
@@ -146,19 +158,25 @@ test('repairAccessors - force', specs => {
     );
 
     t.throws(
-      () => __lookupGetter__.call(null, 1, () => {}),
+      () => __lookupGetter__.call(null, 1),
       TypeError,
       'Throws on null as `this`'
     );
     t.throws(
-      () => __lookupGetter__.call(undefined, 1, () => {}),
+      () => __lookupGetter__.call(undefined, 1),
       TypeError,
       'Throws on undefined as `this`'
+    );
+
+    t.throws(
+      () => new __lookupGetter__(1),
+      TypeError,
+      'Throws when invoked with `new`'
     );
   });
 
   specs.test('Object#__lookupSetter__', t => {
-    t.plan(14);
+    t.plan(15);
 
     t.equal(typeof __lookupSetter__, 'function');
     t.equal(__lookupSetter__.length, 1);
@@ -194,14 +212,20 @@ test('repairAccessors - force', specs => {
     );
 
     t.throws(
-      () => __lookupSetter__.call(null, 1, () => {}),
+      () => __lookupSetter__.call(null, 1),
       TypeError,
       'Throws on null as `this`'
     );
     t.throws(
-      () => __lookupSetter__.call(undefined, 1, () => {}),
+      () => __lookupSetter__.call(undefined, 1),
       TypeError,
       'Throws on undefined as `this`'
+    );
+
+    t.throws(
+      () => new __lookupSetter__(1),
+      TypeError,
+      'Throws when invoked with `new`'
     );
   });
 });
