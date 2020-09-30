@@ -127,6 +127,5 @@ export function createCurrentUnsafeRec() {
   const unsafeEval = eval;
   const unsafeGlobal = unsafeEval(unsafeGlobalSrc);
   repairAccessors();
-  repairFunctions();
   return createUnsafeRec(unsafeGlobal);
 }
