@@ -3,7 +3,7 @@ import { buildCallAndWrapErrorString } from './callAndWrapError';
 import { getSharedGlobalDescs } from './stdlib';
 import { repairAccessors } from './repair/accessors';
 import { repairFunctions } from './repair/functions';
-import { safeStringifyFunction } from './utilities';
+import { assert, safeStringifyFunction } from './utilities';
 import { freeze } from './commons';
 
 // A "context" is a fresh unsafe Realm as given to us by existing platforms.
@@ -123,9 +123,13 @@ export function createNewUnsafeRec(allShims, configurableGlobals = false) {
 
 // Create a new unsafeRec from the current context, where the Realm shim is
 // being parsed and executed, aka the "Primal Realm"
-export function createCurrentUnsafeRec() {
+export function createCurrentUnsafeRec(
+  allowUnsafeFunctionConstructorAccessRecord
+) {
+  assert(typeof allowUnsafeFunctionConstructorAccessRecord === 'object');
   const unsafeEval = eval;
   const unsafeGlobal = unsafeEval(unsafeGlobalSrc);
   repairAccessors();
+  repairFunctions(allowUnsafeFunctionConstructorAccessRecord);
   return createUnsafeRec(unsafeGlobal);
 }
