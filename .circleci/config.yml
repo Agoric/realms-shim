@@ -71,29 +71,6 @@ jobs:
     <<: *lint_and_test
     <<: *node8image
 
-
-  # Automated Npm Audit Fix PR
-
-  npm_audit_node_11: &npm_audit
-    docker:
-      - image: circleci/golang:1.12.0-node
-    steps: 
-      - checkout
-      - run: 
-          name: Update npm
-          command: 'sudo npm install -g npm@latest'
-      - run:
-          name: install hub
-          command: |
-              set -xe
-              go get -u -d github.com/github/hub
-              cd /go/src/github.com/github/hub
-              go install github.com/github/hub
-      - run:
-          name: Submit PR if npm audit fix makes changes
-          command: ./scripts/npm-audit-fix.sh
-
-
 workflows:
   version: 2
   test_all:
