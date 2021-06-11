@@ -18,7 +18,7 @@
  */
 
 // todo: this file should be moved out to a separate repo and npm module.
-export function repairFunctions() {
+export function repairFunctions(allowUnsafeFunctionConstructorAccessRecord) {
   const { defineProperties, getPrototypeOf, setPrototypeOf } = Object;
 
   /**
@@ -45,13 +45,17 @@ export function repairFunctions() {
       throw e;
     }
     const FunctionPrototype = getPrototypeOf(FunctionInstance);
+    const unsafeFunctionConstructor = FunctionPrototype.constructor;
 
     // Prevents the evaluation of source when calling constructor on the
     // prototype of functions.
     const TamedFunction = function() {
       throw new TypeError('Not available');
     };
-    defineProperties(TamedFunction, { name: { value: name } });
+    defineProperties(TamedFunction, {
+      length: { value: 1 },
+      name: { value: name }
+    });
 
     // (new Error()).constructors does not inherit from Function, because Error
     // was defined before ES6 classes. So we don't need to repair it too.
@@ -65,15 +69,42 @@ export function repairFunctions() {
     // we're fine: the constructor inherits from Object.prototype
 
     // This line replaces the original constructor in the prototype chain
-    // with the tamed one. No copy of the original is peserved.
+    // with the tamed one. No copy of the original is preserved.
     defineProperties(FunctionPrototype, {
-      constructor: { value: TamedFunction }
+      constructor: allowUnsafeFunctionConstructorAccessRecord
+        ? {
+            configurable: true,
+            // Ensure that Function.prototype.constructor === Function
+            get() {
+              if (allowUnsafeFunctionConstructorAccessRecord.value === true) {
+                return unsafeFunctionConstructor;
+              }
+              return TamedFunction;
+            },
+            // Pretend to be a data property.
+            set(value) {
+              // 1. Perform ? CreateDataPropertyOrThrow(*this* value, *"constructor"*, _value_).
+              defineProperties(this, {
+                constructor: {
+                  configurable: true,
+                  enumerable: true,
+                  writable: true,
+                  value
+                }
+              });
+              // 2. Return *undefined*.
+            }
+          }
+        : { value: TamedFunction }
     });
 
     // This line sets the tamed constructor's prototype data property to
     // the original one.
     defineProperties(TamedFunction, {
-      prototype: { value: FunctionPrototype }
+      prototype: {
+        writable: false,
+        value: FunctionPrototype
+      }
     });
 
     if (TamedFunction !== Function.prototype.constructor) {

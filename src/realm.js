@@ -130,6 +130,15 @@ function initRootRealm(parentUnsafeRec, self, options) {
   registerRealmRecForRealmInstance(self, realmRec);
 }
 
+// This is an internal object that tells `repairFunction` whether
+// `Function.prototype.constructor` is being accessed from code outside
+// the compartment, and thus should get access to the real Function constructor,
+// or if code should get the tamed version created by `repairFunctions` instead.
+const allowUnsafeFunctionConstructorAccessRecord = Object.seal({
+  __proto__: null,
+  value: true
+});
+
 /**
  * A compartment shares the intrinsics of its root realm. Here, only a
  * realmRec is necessary to hold the global object, eval() and Function().
@@ -138,10 +147,15 @@ function initCompartment(unsafeRec, self, options = {}) {
   // note: 'self' is the instance of the Realm.
 
   const { transforms, sloppyGlobals } = options;
-  const realmRec = createRealmRec(unsafeRec, transforms, sloppyGlobals);
+  try {
+    allowUnsafeFunctionConstructorAccessRecord.value = false;
+    const realmRec = createRealmRec(unsafeRec, transforms, sloppyGlobals);
 
-  // The realmRec acts as a private field on the realm instance.
-  registerRealmRecForRealmInstance(self, realmRec);
+    // The realmRec acts as a private field on the realm instance.
+    registerRealmRecForRealmInstance(self, realmRec);
+  } finally {
+    allowUnsafeFunctionConstructorAccessRecord.value = true;
+  }
 }
 
 function getRealmGlobal(self) {
@@ -150,11 +164,17 @@ function getRealmGlobal(self) {
 }
 
 function realmEvaluate(self, x, endowments = {}, options = {}) {
-  // todo: don't pass in primal-realm objects like {}, for safety. OTOH its
-  // properties are copied onto the new global 'target'.
-  // todo: figure out a way to membrane away the contents to safety.
-  const { safeEvalWhichTakesEndowments } = getRealmRecForRealmInstance(self);
-  return safeEvalWhichTakesEndowments(x, endowments, options);
+  try {
+    allowUnsafeFunctionConstructorAccessRecord.value = false;
+
+    // todo: don't pass in primal-realm objects like {}, for safety. OTOH its
+    // properties are copied onto the new global 'target'.
+    // todo: figure out a way to membrane away the contents to safety.
+    const { safeEvalWhichTakesEndowments } = getRealmRecForRealmInstance(self);
+    return safeEvalWhichTakesEndowments(x, endowments, options);
+  } finally {
+    allowUnsafeFunctionConstructorAccessRecord.value = true;
+  }
 }
 
 const BaseRealm = {
@@ -166,7 +186,9 @@ const BaseRealm = {
 
 // Create the current unsafeRec from the current "primal" environment (the realm
 // where the Realm shim is loaded and executed).
-const currentUnsafeRec = createCurrentUnsafeRec();
+const currentUnsafeRec = createCurrentUnsafeRec(
+  allowUnsafeFunctionConstructorAccessRecord
+);
 
 /**
  * The "primal" realm class is defined in the current "primal" environment,
