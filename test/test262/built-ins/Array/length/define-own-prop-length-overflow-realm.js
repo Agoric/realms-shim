@@ -20,7 +20,7 @@ test('test262/built-ins/Array/length/define-own-prop-length-overflow-realm.js', 
   t.plan(1);
 
   const test = () => {
-    const other = Realm.makeRootRealm().global;
+    const other = new Realm().globalThis;
     const OArray = other.Array;
     const array = new OArray();
 
@@ -29,7 +29,7 @@ test('test262/built-ins/Array/length/define-own-prop-length-overflow-realm.js', 
     }, RangeError);
   };
 
-  const realm = Realm.makeRootRealm();
-  realm.global.t = t;
-  realm.global.eval(`(${test})()`);
+  const realm = new Realm();
+  realm.globalThis.t = t;
+  realm.globalThis.eval(`(${test})()`);
 });

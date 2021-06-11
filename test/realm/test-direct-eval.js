@@ -77,7 +77,7 @@ test('no-eval-expression regexp', t => {
 });
 
 test('reject direct eval expressions in evaluate', t => {
-  const r = Realm.makeRootRealm();
+  const r = new Realm();
 
   function wrap(s) {
     return `
@@ -114,7 +114,7 @@ test('reject direct eval expressions in evaluate', t => {
 });
 
 test('reject direct eval expressions in Function', t => {
-  const r = Realm.makeRootRealm();
+  const r = new Realm();
 
   function wrap(s) {
     return `new Function("${s}; return a;")`;

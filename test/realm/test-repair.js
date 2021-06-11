@@ -11,9 +11,9 @@ protectedObjects.set(eval, 'eval');
 protectedObjects.set((0, eval)('this'), 'global object');
 
 test('eval.toString', t => {
-  const r = Realm.makeRootRealm();
+  const r = new Realm();
   const p = r.evaluate('Object.prototype.__lookupGetter__.__proto__');
-  t.equal(p, r.global.Function.prototype);
+  t.equal(p, r.globalThis.Function.prototype);
   t.notEqual(p, Function.prototype);
   t.end();
 });
@@ -44,12 +44,12 @@ test('fix the bug in which accessor methods leak the global', t => {
   t.throws(() => testForBug(Object), TypeError);
 
   // now test that the bug is fixed inside a new RootRealm too
-  const r = Realm.makeRootRealm();
-  t.throws(() => testForBug(r.global.Object), r.global.TypeError);
+  const r = new Realm();
+  t.throws(() => testForBug(r.globalThis.Object), r.globalThis.TypeError);
 
   // and the fix we applied should not leak the unsafe Function
   const p = r.evaluate('Object.prototype.__lookupGetter__.__proto__');
-  t.equal(p, r.global.Function.prototype);
+  t.equal(p, r.globalThis.Function.prototype);
   t.notEqual(p, Function.prototype);
   t.end();
 });
@@ -62,7 +62,7 @@ function getGenerator() {
 }
 
 test('strict-function', t => {
-  const r = Realm.makeRootRealm();
+  const r = new Realm();
   const c = r.evaluate('Function.prototype.constructor');
   t.notOk('arguments' in Object.getOwnPropertyDescriptors(c));
   t.notOk('caller' in Object.getOwnPropertyDescriptors(c));
@@ -70,7 +70,7 @@ test('strict-function', t => {
 });
 
 test('generator-constructor-is-consistent', t => {
-  const r = Realm.makeRootRealm();
+  const r = new Realm();
   const c = r.evaluate('Function.prototype.constructor');
   const gp = r.evaluate(`(${getGenerator})`)();
   const gpc = gp.constructor;
@@ -82,7 +82,7 @@ test('generator-constructor-is-consistent', t => {
 
 test('scan', t => {
   /*
-  const r = Realm.makeRootRealm();
+  const r = new Realm();
   let failures = [];
 
   const primalObjects = walkObjects((0, eval)('this'), () => {});
@@ -105,12 +105,12 @@ test('scan', t => {
   */
 
   /*
-  const realmObjects = walkObjects(r.global, check);
+  const realmObjects = walkObjects(r.globalThis, check);
   //r.evaluate('this.a = {}');
   //const bad = r.evaluate('this.a.__proto__.__defineGetter__.__proto__');
   //t.notEqual(bad, Function.prototype);
 
-  walkObjects(r.global, check);
+  walkObjects(r.globalThis, check);
   if (failures.length) {
     console.log('failures:');
     for (let f of failures) {
@@ -124,7 +124,7 @@ test('scan', t => {
 
 test('scan2', t => {
   /*
-  const r = Realm.makeRootRealm();
+  const r = new Realm();
   let failures = [];
 
   // to make this test runnable, modify Realm.constructor to add these lines

@@ -30,7 +30,7 @@ test('test262/annexB/built-ins/Object/prototype/__lookupSetter__/lookup-proto-da
     t.equal(subject.__lookupSetter__('target'), undefined);
   };
 
-  const realm = Realm.makeRootRealm();
-  realm.global.t = t;
-  realm.global.eval(`(${test})()`);
+  const realm = new Realm();
+  realm.globalThis.t = t;
+  realm.globalThis.eval(`(${test})()`);
 });

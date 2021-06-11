@@ -11,7 +11,7 @@ test('typeof', t => {
   t.ok(console);
   t.equal(typeof console, 'object');
 
-  const r = Realm.makeRootRealm();
+  const r = new Realm();
   t.throws(() => r.evaluate('DEFINITELY_NOT_DEFINED'), ReferenceError);
   t.equal(r.evaluate('typeof DEFINITELY_NOT_DEFINED'), 'undefined');
   t.equal(r.evaluate('typeof 4'), 'number');
@@ -19,7 +19,7 @@ test('typeof', t => {
   t.equal(r.evaluate('typeof "a string"'), 'string');
   // todo: the Realm currently censors objects from the unsafe global, but
   // they appear 'undefined' rather than throwing a ReferenceError
-  // t.throws(() => r.evaluate('console'), r.global.ReferenceError);
+  // t.throws(() => r.evaluate('console'), r.globalThis.ReferenceError);
 
   // node 7 doesn't have 'console' in the vm environment
   if ('console' in createNewUnsafeRec().unsafeGlobal) {

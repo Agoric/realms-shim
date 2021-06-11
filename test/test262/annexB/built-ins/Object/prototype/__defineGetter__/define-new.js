@@ -38,7 +38,7 @@ test('test262/annexB/built-ins/Object/prototype/__defineGetter__/define-new.js',
     t.equal(result, undefined, 'method return value');
   };
 
-  const realm = Realm.makeRootRealm();
-  realm.global.t = t;
-  realm.global.eval(`(${test})()`);
+  const realm = new Realm();
+  realm.globalThis.t = t;
+  realm.globalThis.eval(`(${test})()`);
 });

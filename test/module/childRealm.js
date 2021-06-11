@@ -20,7 +20,7 @@ const BaseRealm = {
 };
 
 test('buildChildRealm - Realm callAndWrapError() invoked', t => {
-  t.plan(2);
+  t.plan(3);
 
   sinon.stub(BaseRealm, 'initRootRealm').callsFake(() => {
     // eslint-disable-next-line no-throw-literal
@@ -36,6 +36,7 @@ test('buildChildRealm - Realm callAndWrapError() invoked', t => {
     BaseRealm
   );
 
+  t.throws(() => new Realm(), /initRootRealm/);
   t.throws(() => Realm.makeRootRealm(), /initRootRealm/);
   t.throws(() => Realm.makeCompartment(), /initCompartment/);
 
@@ -59,9 +60,9 @@ test('buildChildRealm - callAndWrapError() invoked', t => {
     unsafeRec,
     BaseRealm
   );
-  const rootRealm = Realm.makeRootRealm();
+  const rootRealm = new Realm();
 
-  t.throws(() => rootRealm.global, /getGlobal/);
+  t.throws(() => rootRealm.globalThis, /getGlobal/);
   t.throws(() => rootRealm.evaluate(), /evaluate/);
 
   BaseRealm.getRealmGlobal.restore();
@@ -69,7 +70,7 @@ test('buildChildRealm - callAndWrapError() invoked', t => {
 });
 
 test('buildChildRealm - callAndWrapError() error types', t => {
-  t.plan(7);
+  t.plan(8);
 
   let error;
   sinon.stub(BaseRealm, 'initRootRealm').callsFake(() => {
@@ -80,6 +81,13 @@ test('buildChildRealm - callAndWrapError() error types', t => {
     unsafeRec,
     BaseRealm
   );
+
+  t.throws(() => {
+    error = '123';
+    // eslint-disable-next-line no-new
+    new Realm();
+  }, /123/);
+
   t.throws(() => {
     error = '123';
     Realm.makeRootRealm();
@@ -103,7 +111,7 @@ test('buildChildRealm - callAndWrapError() error types', t => {
 });
 
 test('buildChildRealm - callAndWrapError() error throws', t => {
-  t.plan(1);
+  t.plan(2);
 
   sinon.stub(BaseRealm, 'initRootRealm').callsFake(() => {
     // eslint-disable-next-line no-throw-literal
@@ -118,13 +126,15 @@ test('buildChildRealm - callAndWrapError() error throws', t => {
     unsafeRec,
     BaseRealm
   );
+
+  t.throws(() => new Realm(), /unknown error/);
   t.throws(() => Realm.makeRootRealm(), /unknown error/);
 
   BaseRealm.initRootRealm.restore();
 });
 
 test('buildChildRealm - callAndWrapError() unknown error type', t => {
-  t.plan(1);
+  t.plan(2);
 
   sinon.stub(BaseRealm, 'initRootRealm').callsFake(() => {
     // eslint-disable-next-line no-throw-literal
@@ -138,6 +148,8 @@ test('buildChildRealm - callAndWrapError() unknown error type', t => {
     unsafeRec,
     BaseRealm
   );
+
+  t.throws(() => new Realm(), Error);
   t.throws(() => Realm.makeRootRealm(), Error);
 
   BaseRealm.initRootRealm.restore();
@@ -154,6 +166,30 @@ test('buildChildRealm - toString()', t => {
 
   t.equals(Realm.toString(), 'function Realm() { [shim code] }');
   t.equals(rootRealm.toString(), '[object Realm]');
+});
+
+test('buildChildRealm - new Realm', t => {
+  t.plan(5);
+
+  sinon.spy(BaseRealm, 'initRootRealm');
+
+  const Realm = unsafeRec.unsafeEval(buildChildRealmString)(
+    unsafeRec,
+    BaseRealm
+  );
+  const options = {};
+  // eslint-disable-next-line no-new
+  new Realm(options);
+
+  t.equals(BaseRealm.initRootRealm.callCount, 1);
+
+  const args = BaseRealm.initRootRealm.getCall(0).args;
+  t.equals(args.length, 3);
+  t.equals(args[0], unsafeRec);
+  t.ok(args[1] instanceof Realm);
+  t.equals(args[2], options);
+
+  BaseRealm.initRootRealm.restore();
 });
 
 test('buildChildRealm - Realm.makeRootRealm', t => {
@@ -201,7 +237,7 @@ test('buildChildRealm - Realm.makeCompartment', t => {
   BaseRealm.initCompartment.restore();
 });
 
-test('buildChildRealm - realm.global', t => {
+test('buildChildRealm - realm.globalThis', t => {
   t.plan(4);
 
   const expectedGlobal = {};
@@ -212,7 +248,7 @@ test('buildChildRealm - realm.global', t => {
     BaseRealm
   );
   const compartment = Realm.makeCompartment();
-  const actualGlobal = compartment.global;
+  const actualGlobal = compartment.globalThis;
 
   t.equals(BaseRealm.getRealmGlobal.callCount, 1);
 

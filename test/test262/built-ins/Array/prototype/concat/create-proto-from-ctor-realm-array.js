@@ -31,7 +31,7 @@ test('test262/built-ins/Array/prototype/concat/create-proto-from-ctor-realm-arra
 
   const test = () => {
     const array = [];
-    const OArray = Realm.makeRootRealm().global.Array;
+    const OArray = new Realm().globalThis.Array;
     let callCount = 0;
     const speciesDesc = {
       get() {
@@ -50,7 +50,7 @@ test('test262/built-ins/Array/prototype/concat/create-proto-from-ctor-realm-arra
     t.equal(callCount, 0, 'Species constructor is not referenced');
   };
 
-  const realm = Realm.makeRootRealm();
-  realm.global.t = t;
-  realm.global.eval(`(${test})()`);
+  const realm = new Realm();
+  realm.globalThis.t = t;
+  realm.globalThis.eval(`(${test})()`);
 });

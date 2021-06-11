@@ -4,7 +4,7 @@ import Realm from '../../src/realm';
 test('transforms - rewriterState', t => {
   let rewriteArguments;
 
-  const r = Realm.makeRootRealm();
+  const r = new Realm();
   r.evaluate('', undefined, {
     transforms: [
       {
@@ -23,7 +23,7 @@ test('transforms - rewriterState', t => {
 
   // rewriterState is using intrinsics from the target realm.
   const [rewriteState] = rewriteArguments;
-  t.ok(rewriteState instanceof r.global.Object);
+  t.ok(rewriteState instanceof r.globalThis.Object);
 
   t.end();
 });
@@ -39,7 +39,7 @@ test('transforms - transforms array', t => {
     }
   }
 
-  const r = Realm.makeRootRealm();
+  const r = new Realm();
   const transforms = new BadArray();
   r.evaluate('', undefined, { transforms });
 
