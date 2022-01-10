@@ -6,7 +6,7 @@
 [![dev dependency status][dev-deps-svg]][dev-deps-url]
 [![License][license-image]][license-url]
 
-This repository contains a shim implementation of the [Realm API Proposal](https://github.com/tc39/proposal-realms/#ecmascript-spec-proposal-for-realms-api). 
+This repository contains a shim implementation of an outdated [Realm API Proposal](https://github.com/tc39/proposal-realms/tree/ff7583930ed67dda603b59e343b3ed85ac741d35#ecmascript-spec-proposal-for-realms-api). 
 
 The Realms proposal has been superceded by the [ShadowRealms Proposal](https://github.com/tc39/proposal-shadowrealm/). This shim does not implement ShadowRealms, but (as of this writing) the proposal is at Stage 3 of the TC39 standardization process, so common JS engines should have support soon.
 
