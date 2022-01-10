@@ -1,12 +1,17 @@
-# Realm Shim
-[![Build Status][circleci-svg]][circleci-url]
-[![Coverage Status][coveralls-svg]][coveralls-url]
-[![dependency status][deps-svg]][deps-url]
-[![dev dependency status][dev-deps-svg]][dev-deps-url]
+# Realms Shim : OBSOLETE, INSECURE, NOT RECOMMENDED FOR USE
+
 [![License][license-image]][license-url]
 
+This repository contains a legacy shim implementation of an outdated [Realm API Proposal](https://github.com/tc39/proposal-realms/tree/ff7583930ed67dda603b59e343b3ed85ac741d35#ecmascript-spec-proposal-for-realms-api). 
 
-This folder contains a shim implementation of the [Realm API Proposal](https://github.com/tc39/proposal-realms/#ecmascript-spec-proposal-for-realms-api). 
+The Realms proposal has been superceded by the [ShadowRealm Proposal](https://github.com/tc39/proposal-shadowrealm/). This shim does not implement ShadowRealm, which (as of this writing) is a proposal at Stage 3 of the TC39 standardization process, so common JS engines should have support soon.
+
+We do not recommend the use of this shim or the original Realms approach. While the Realm API allows the user to create a new set of independent built-ins (intrinsics), this cannot be used for isolation or security properties without either freezing those intrinsics or hiding them behind a Membrane. The shim provides no mechanism to do either, and both are non-trivial to implement. Without those, when two mutually-suspicious Realms are communicating, both must be extremely careful to prevent any object leakage, otherwise one Realm can pollute the globals or intrinsics of the other.
+
+ShadowRealms defines a "callable boundary" which prevents objects from passing through, mitigating this danger.
+
+In general, we recommend the use of alternate isolation tools like [Endo](https://github.com/endojs/endo/) and the related/embedded SES/HardenedJS environment. This provides `lockdown()` to tame the environment at startup, and the `Compartment` constructor to create evaluation compartments with independent (and potentially frozen) globals. In our experience with the [Agoric SDK](https://github.com/Agoric/agoric-sdk), we find Endo to be much safer and easier to use securely.
+
 
 ## Limitations
 
@@ -104,24 +109,5 @@ r.global.JSON === JSON; // true
 ```
 
 
-## Bug Disclosure
-
-Please help us practice coordinated security bug disclosure, by using the
-instructions in
-[SECURITY.md](https://github.com/Agoric/realms-shim/blob/master/SECURITY.md)
-to report security-sensitive bugs privately.
-
-For non-security bugs, please use the [regular Issues
-page](https://github.com/Agoric/realms-shim/issues).
-
-
-[circleci-svg]: https://circleci.com/gh/Agoric/realms-shim.svg?style=svg
-[circleci-url]: https://circleci.com/gh/Agoric/realms-shim
-[coveralls-svg]: https://coveralls.io/repos/github/Agoric/realms-shim/badge.svg
-[coveralls-url]: https://coveralls.io/github/Agoric/realms-shim
-[deps-svg]: https://david-dm.org/Agoric/realms-shim.svg
-[deps-url]: https://david-dm.org/Agoric/realms-shim
-[dev-deps-svg]: https://david-dm.org/Agoric/realms-shim/dev-status.svg
-[dev-deps-url]: https://david-dm.org/Agoric/realms-shim?type=dev
 [license-image]: https://img.shields.io/badge/License-Apache%202.0-blue.svg
 [license-url]: LICENSE
