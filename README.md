@@ -8,7 +8,7 @@
 
 This repository contains a shim implementation of an outdated [Realm API Proposal](https://github.com/tc39/proposal-realms/tree/ff7583930ed67dda603b59e343b3ed85ac741d35#ecmascript-spec-proposal-for-realms-api). 
 
-The Realms proposal has been superceded by the [ShadowRealms Proposal](https://github.com/tc39/proposal-shadowrealm/). This shim does not implement ShadowRealms, but (as of this writing) the proposal is at Stage 3 of the TC39 standardization process, so common JS engines should have support soon.
+The Realms proposal has been superceded by the [ShadowRealm Proposal](https://github.com/tc39/proposal-shadowrealm/). This shim does not implement ShadowRealm, which (as of this writing) is a proposal at Stage 3 of the TC39 standardization process, so common JS engines should have support soon.
 
 We do not recommend the use of this shim or the original Realms approach. The main danger is that intrinsics are not automatically frozen, so when two mutually-suspicious Realms are communicating, both must be extremely careful to prevent any object leakage, otherwise one Realm can pollute the globals or intrinsics of the other. This can be prevented with a "Membrane Pattern", but the shim doesn't provide one, and the details are tricky to get right.
 
