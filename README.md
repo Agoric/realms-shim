@@ -1,9 +1,5 @@
 # Realms Shim : OBSOLETE, INSECURE, NOT RECOMMENDED FOR USE
 
-[![Build Status][circleci-svg]][circleci-url]
-[![Coverage Status][coveralls-svg]][coveralls-url]
-[![dependency status][deps-svg]][deps-url]
-[![dev dependency status][dev-deps-svg]][dev-deps-url]
 [![License][license-image]][license-url]
 
 This repository contains a legacy shim implementation of an outdated [Realm API Proposal](https://github.com/tc39/proposal-realms/tree/ff7583930ed67dda603b59e343b3ed85ac741d35#ecmascript-spec-proposal-for-realms-api). 
@@ -113,13 +109,5 @@ r.global.JSON === JSON; // true
 ```
 
 
-[circleci-svg]: https://circleci.com/gh/Agoric/realms-shim.svg?style=svg
-[circleci-url]: https://circleci.com/gh/Agoric/realms-shim
-[coveralls-svg]: https://coveralls.io/repos/github/Agoric/realms-shim/badge.svg
-[coveralls-url]: https://coveralls.io/github/Agoric/realms-shim
-[deps-svg]: https://david-dm.org/Agoric/realms-shim.svg
-[deps-url]: https://david-dm.org/Agoric/realms-shim
-[dev-deps-svg]: https://david-dm.org/Agoric/realms-shim/dev-status.svg
-[dev-deps-url]: https://david-dm.org/Agoric/realms-shim?type=dev
 [license-image]: https://img.shields.io/badge/License-Apache%202.0-blue.svg
 [license-url]: LICENSE
