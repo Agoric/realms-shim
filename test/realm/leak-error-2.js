@@ -8,7 +8,7 @@ const test = mixedTape(tape);
 test('Host exception caused by out-of-memory in eval', t => {
   t.plan(2);
 
-  const r = Realm.makeRootRealm();
+  const r = new Realm();
 
   const endowments = { __capture__: {} };
 
@@ -37,13 +37,13 @@ test('Host exception caused by out-of-memory in eval', t => {
   } = endowments;
 
   t.notOk(error instanceof Error, "should not be parent's Error");
-  t.ok(error instanceof r.global.Error, "should be realm's Error");
+  t.ok(error instanceof r.globalThis.Error, "should be realm's Error");
 });
 
 test('Host exception caused by out-of-memory in Function', t => {
   t.plan(2);
 
-  const r = Realm.makeRootRealm();
+  const r = new Realm();
 
   const endowments = { __capture__: {} };
 
@@ -72,13 +72,13 @@ test('Host exception caused by out-of-memory in Function', t => {
   } = endowments;
 
   t.notOk(error instanceof Error, "should not be parent's Error");
-  t.ok(error instanceof r.global.Error, "should be realm's Error");
+  t.ok(error instanceof r.globalThis.Error, "should be realm's Error");
 });
 
 test('Host exception in eval caused by cannot convert a Symbol value to a string', t => {
   t.plan(2);
 
-  const r = Realm.makeRootRealm();
+  const r = new Realm();
 
   const endowments = { __capture__: {} };
 
@@ -102,13 +102,13 @@ test('Host exception in eval caused by cannot convert a Symbol value to a string
   } = endowments;
 
   t.notOk(error instanceof Error, "should not be parent's Error");
-  t.ok(error instanceof r.global.Error, "should be realm's Error");
+  t.ok(error instanceof r.globalThis.Error, "should be realm's Error");
 });
 
 test('Host exception in Function caused by cannot convert a Symbol value to a string', t => {
   t.plan(2);
 
-  const r = Realm.makeRootRealm();
+  const r = new Realm();
 
   const endowments = { __capture__: {} };
 
@@ -132,13 +132,13 @@ test('Host exception in Function caused by cannot convert a Symbol value to a st
   } = endowments;
 
   t.notOk(error instanceof Error, "should not be parent's Error");
-  t.ok(error instanceof r.global.Error, "should be realm's Error");
+  t.ok(error instanceof r.globalThis.Error, "should be realm's Error");
 });
 
 test('Host exception caused by redefine property in scope proxy', t => {
   t.plan(2);
 
-  const r = Realm.makeRootRealm();
+  const r = new Realm();
 
   const endowments = { __capture__: {} };
 
@@ -164,13 +164,13 @@ test('Host exception caused by redefine property in scope proxy', t => {
   } = endowments;
 
   t.notOk(error instanceof Error, "should not be parent's Error");
-  t.ok(error instanceof r.global.Error, "should be realm's Error");
+  t.ok(error instanceof r.globalThis.Error, "should be realm's Error");
 });
 
 test('Raised exception rewriter', t => {
   t.plan(2);
 
-  const r = Realm.makeRootRealm();
+  const r = new Realm();
 
   const endowments = { __capture__: {} };
 
@@ -194,5 +194,5 @@ test('Raised exception rewriter', t => {
   } = endowments;
 
   t.notOk(error instanceof Error, "should not be parent's Error");
-  t.ok(error instanceof r.global.Error, "should be realm's Error");
+  t.ok(error instanceof r.globalThis.Error, "should be realm's Error");
 });

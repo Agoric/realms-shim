@@ -11,7 +11,7 @@ info: |
           i. If IsAccessorDescriptor(desc) is true, return desc.[[Get]].
           ii. Return undefined.
        c. Let O be ? O.[[GetPrototypeOf]]().
-       d. If O is null, return undefined. 
+       d. If O is null, return undefined.
 ---*/
 
 import test from 'tape';
@@ -31,7 +31,7 @@ test('test262/annexB/built-ins/Object/prototype/__lookupGetter__/lookup-proto-da
     t.equal(subject.__lookupGetter__('target'), undefined);
   };
 
-  const realm = Realm.makeRootRealm();
-  realm.global.t = t;
-  realm.global.eval(`(${test})()`);
+  const realm = new Realm();
+  realm.globalThis.t = t;
+  realm.globalThis.eval(`(${test})()`);
 });

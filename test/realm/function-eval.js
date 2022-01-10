@@ -2,8 +2,8 @@ import test from 'tape';
 import Realm from '../../src/realm';
 
 test('function-no-body', t => {
-  const r = Realm.makeRootRealm();
-  const f1 = new r.global.Function();
+  const r = new Realm();
+  const f1 = new r.globalThis.Function();
   const src = f1.toString();
   t.notOk(src.includes('undefined'));
   t.equal(f1(), undefined);
@@ -12,8 +12,8 @@ test('function-no-body', t => {
 
 test('function-injection', t => {
   const goodFunc = 'return a+1';
-  const r = Realm.makeRootRealm();
-  const f1 = new r.global.Function('a', goodFunc);
+  const r = new Realm();
+  const f1 = new r.globalThis.Function('a', goodFunc);
   t.equal(f1(5), 6);
 
   // the naive expansion is: '(function(a) {'  +  evilFunc  +  '})'
@@ -25,20 +25,27 @@ test('function-injection', t => {
   // which becomes: (function(a) {}, this.haha = 666, {})
 
   const evilFunc = '}, this.haha = 666, {';
-  t.throws(() => new r.global.Function('a', evilFunc), r.global.SyntaxError);
-  t.equal(r.global.haha, undefined);
+  t.throws(
+    () => new r.globalThis.Function('a', evilFunc),
+    r.globalThis.SyntaxError
+  );
+  t.equal(r.globalThis.haha, undefined);
 
   t.end();
 });
 
 test('function-injection-2', t => {
-  const r = Realm.makeRootRealm();
+  const r = new Realm();
   let flag = false;
-  r.global.target = function() {
+  r.globalThis.target = function() {
     flag = true;
   };
   function check(...args) {
-    t.throws(() => r.global.Function(...args), r.global.SyntaxError, args);
+    t.throws(
+      () => r.globalThis.Function(...args),
+      r.globalThis.SyntaxError,
+      args
+    );
     t.equal(flag, false);
   }
 
@@ -102,11 +109,11 @@ test('function-injection-2', t => {
 
 test('function-reject-paren-default', t => {
   // this ought to be accepted, but our shim is conservative about parenthesis
-  const r = Realm.makeRootRealm();
+  const r = new Realm();
   const goodFunc = 'return foo';
   t.throws(
-    () => new r.global.Function('foo, a = new Date(0)', goodFunc),
-    r.global.SyntaxError
+    () => new r.globalThis.Function('foo, a = new Date(0)', goodFunc),
+    r.globalThis.SyntaxError
   );
   t.end();
 });
@@ -116,63 +123,69 @@ test('function-reject-paren-default', t => {
 // parameters
 test('function-default-parameters', t => {
   const goodFunc = 'return a+1';
-  const r = Realm.makeRootRealm();
-  t.throws(() => new r.global.Function('a=1', goodFunc), r.global.SyntaxError);
+  const r = new Realm();
+  t.throws(
+    () => new r.globalThis.Function('a=1', goodFunc),
+    r.globalThis.SyntaxError
+  );
   t.end();
 });
 
 test('function-rest-parameters', t => {
   const goodFunc = 'return rest[0] + rest[1]';
-  const r = Realm.makeRootRealm();
+  const r = new Realm();
   t.throws(
-    () => new r.global.Function('...rest', goodFunc),
-    r.global.SyntaxError
+    () => new r.globalThis.Function('...rest', goodFunc),
+    r.globalThis.SyntaxError
   );
   t.end();
 });
 
 test('function-destructuring-parameters', t => {
   const goodFunc = 'return foo + bar + baz';
-  const r = Realm.makeRootRealm();
+  const r = new Realm();
   t.throws(
-    () => new r.global.Function('{foo, bar}, baz', goodFunc),
-    r.global.SyntaxError
+    () => new r.globalThis.Function('{foo, bar}, baz', goodFunc),
+    r.globalThis.SyntaxError
   );
   t.end();
 });
 
 test('function-legitimate-but-weird-parameters', t => {
-  const r = Realm.makeRootRealm();
+  const r = new Realm();
   const goodFunc = 'return foo + bar + baz';
-  const f1 = new r.global.Function('foo, bar', 'baz', goodFunc);
+  const f1 = new r.globalThis.Function('foo, bar', 'baz', goodFunc);
   t.equal(f1(1, 2, 3), 6);
 
   const goodFunc2 = 'return foo + bar[0] + bar[1]';
   t.throws(
-    () => new r.global.Function('foo, bar = [1', '2]', goodFunc2),
-    r.global.SyntaxError
+    () => new r.globalThis.Function('foo, bar = [1', '2]', goodFunc2),
+    r.globalThis.SyntaxError
   );
 
   t.end();
 });
 
 test('degenerate-pattern-match-argument', t => {
-  const r = Realm.makeRootRealm();
+  const r = new Realm();
   const goodFunc = 'return foo + bar + baz';
   // this syntax is rejected by the normal JS parser, not by anything special
   // about Realms
-  t.throws(() => new r.global.Function('3', goodFunc), r.global.SyntaxError);
+  t.throws(
+    () => new r.globalThis.Function('3', goodFunc),
+    r.globalThis.SyntaxError
+  );
 
   t.end();
 });
 
 test('frozen-eval', t => {
-  const r = Realm.makeRootRealm();
+  const r = new Realm();
 
-  const desc = Object.getOwnPropertyDescriptor(r.global, 'eval');
+  const desc = Object.getOwnPropertyDescriptor(r.globalThis, 'eval');
   desc.writable = false;
   desc.configurable = false;
-  Object.defineProperty(r.global, 'eval', desc);
+  Object.defineProperty(r.globalThis, 'eval', desc);
 
   t.equal(r.evaluate('(0,eval)(1)'), 1);
 

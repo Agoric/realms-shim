@@ -3,9 +3,13 @@ import test from 'tape';
 const Realm = require('../dist/realms-shim.cjs.js');
 
 test('new Realm', t => {
-  t.plan(1);
+  t.plan(3);
 
-  t.throws(() => new Realm(), TypeError, 'new Real() should throws');
+  const r = new Realm();
+
+  t.ok(r instanceof Realm);
+  t.ok(r.globalThis instanceof r.globalThis.Object);
+  t.equal(r.evaluate('42'), 42);
 });
 
 test('Realm.makeRootRealm()', t => {
@@ -14,7 +18,7 @@ test('Realm.makeRootRealm()', t => {
   const r = Realm.makeRootRealm();
 
   t.ok(r instanceof Realm);
-  t.ok(r.global instanceof r.global.Object);
+  t.ok(r.globalThis instanceof r.globalThis.Object);
   t.equal(r.evaluate('42'), 42);
 });
 
@@ -24,6 +28,6 @@ test('Realm.makeCompartment()', t => {
   const r = Realm.makeCompartment();
 
   t.ok(r instanceof Realm);
-  t.ok(r.global instanceof Object);
+  t.ok(r.globalThis instanceof Object);
   t.equal(r.evaluate('42'), 42);
 });

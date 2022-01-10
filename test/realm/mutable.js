@@ -3,7 +3,7 @@ import Realm from '../../src/realm';
 
 test('most Realm globals are mutable', t => {
   t.plan(3);
-  const r = Realm.makeRootRealm();
+  const r = new Realm();
 
   r.evaluate('Date = function() { return "bogus" }');
   t.equal(r.evaluate('Date()'), 'bogus');
@@ -17,7 +17,7 @@ test('most Realm globals are mutable', t => {
 
 test('some Realm globals are immutable', t => {
   t.plan(6);
-  const r = Realm.makeRootRealm();
+  const r = new Realm();
 
   t.throws(() => r.evaluate('Infinity = 4'), TypeError); // strict mode
   t.equal(r.evaluate('Infinity'), Infinity);

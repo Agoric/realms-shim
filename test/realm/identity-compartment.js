@@ -5,8 +5,8 @@ import Realm from '../../src/realm';
 test('identity JSON', t => {
   t.plan(4);
 
-  const r1 = Realm.makeRootRealm();
-  const r2 = r1.global.Realm.makeCompartment();
+  const r1 = new Realm();
+  const r2 = r1.globalThis.Realm.makeCompartment();
 
   t.equal(r2.evaluate('JSON'), r2.evaluate('JSON'));
   t.equal(r2.evaluate('JSON'), r2.evaluate('(1,eval)("JSON")'));
@@ -18,8 +18,8 @@ test('identity JSON', t => {
 test('identity Realm', t => {
   t.plan(8);
 
-  const r1 = Realm.makeRootRealm();
-  const r2 = r1.global.Realm.makeCompartment();
+  const r1 = new Realm();
+  const r2 = r1.globalThis.Realm.makeCompartment();
 
   t.ok(r2.evaluate('Realm instanceof Function'));
   t.ok(r2.evaluate('Realm instanceof Object'));
@@ -35,8 +35,8 @@ test('identity Realm', t => {
 test('identity eval', t => {
   t.plan(8);
 
-  const r1 = Realm.makeRootRealm();
-  const r2 = r1.global.Realm.makeCompartment();
+  const r1 = new Realm();
+  const r2 = r1.globalThis.Realm.makeCompartment();
 
   t.ok(r2.evaluate('eval instanceof Function'));
   t.ok(r2.evaluate('eval instanceof Object'));
@@ -52,9 +52,9 @@ test('identity eval', t => {
 test('identity Function', t => {
   t.plan(11);
 
-  const r1 = Realm.makeRootRealm();
-  const r2 = r1.global.Realm.makeCompartment();
-  const r3 = r1.global.Realm.makeCompartment();
+  const r1 = new Realm();
+  const r2 = r1.globalThis.Realm.makeCompartment();
+  const r3 = r1.globalThis.Realm.makeCompartment();
 
   t.ok(r2.evaluate('Function instanceof Function'));
   t.ok(r2.evaluate('Function instanceof Object'));
@@ -66,7 +66,7 @@ test('identity Function', t => {
   t.notEqual(r2.evaluate('Function'), Function);
 
   const f2 = r2.evaluate('function x(a, b) { return a+b; }; x');
-  t.ok(f2 instanceof r1.global.Function);
-  t.ok(f2 instanceof r2.global.Function);
-  t.ok(f2 instanceof r3.global.Function);
+  t.ok(f2 instanceof r1.globalThis.Function);
+  t.ok(f2 instanceof r2.globalThis.Function);
+  t.ok(f2 instanceof r3.globalThis.Function);
 });

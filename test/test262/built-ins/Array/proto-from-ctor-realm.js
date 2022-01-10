@@ -28,10 +28,10 @@ import Realm from '../../../../src/realm';
 test('test262/built-ins/Array/proto-from-ctor-realm.js', t => {
   t.plan(1);
 
-  const realm = Realm.makeRootRealm();
-  realm.global.t = t;
-  realm.global.eval(`
-    const other = Realm.makeRootRealm().global;
+  const realm = new Realm();
+  realm.globalThis.t = t;
+  realm.globalThis.eval(`
+    const other = new Realm().globalThis;
     const C = new other.Function();
     C.prototype = null;
 

@@ -76,7 +76,7 @@ test('test262/annexB/built-ins/Object/prototype/__defineSetter__/setter-non-call
     t.equal(toStringCount, 0);
   };
 
-  const realm = Realm.makeRootRealm();
-  realm.global.t = t;
-  realm.global.eval(`(${test})()`);
+  const realm = new Realm();
+  realm.globalThis.t = t;
+  realm.globalThis.eval(`(${test})()`);
 });
