@@ -166,6 +166,26 @@ test('degenerate-pattern-match-argument', t => {
   t.end();
 });
 
+test('eval-own-properties', t => {
+  const r = Realm.makeRootRealm();
+
+  const evalFunc = r.global.eval;
+  t.equal(evalFunc.name, 'eval', 'eval.name === "eval"');
+  t.equal(evalFunc.length, 1, 'eval.length === 1');
+  t.equal(
+    Object.getOwnPropertyDescriptor(evalFunc, 'prototype'),
+    undefined,
+    'eval.prototype === undefined'
+  );
+  t.equal(
+    evalFunc.toString(),
+    'function eval() { [shim code] }',
+    'eval.toString()'
+  );
+
+  t.end();
+});
+
 test('frozen-eval', t => {
   const r = Realm.makeRootRealm();
 
@@ -174,7 +194,15 @@ test('frozen-eval', t => {
   desc.configurable = false;
   Object.defineProperty(r.global, 'eval', desc);
 
-  t.equal(r.evaluate('(0,eval)(1)'), 1);
+  t.equal(r.evaluate('(0,eval)("1")'), 1);
+  t.equal(
+    r.evaluate(`\
+      const sym = Symbol("foo");
+      (0,eval)(sym) === sym;
+    `),
+    true,
+    'eval(<non-string>) returns <non-string>'
+  );
 
   t.end();
 });
