@@ -23,7 +23,12 @@ function buildSafeEval(unsafeRec, safeEvalOperation) {
   defineProperties(safeEval, {
     // `eval.length` is already initialized correctly.
     // Ensure that `eval.name` is also correct:
-    name: { value: 'eval' },
+    name: {
+      value: 'eval',
+      writable: false,
+      enumerable: false,
+      configurable: true
+    },
     toString: {
       // We break up the following literal string so that an
       // apparent direct eval syntax does not appear in this
